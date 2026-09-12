@@ -13,6 +13,7 @@ import {
   ClipboardList,
   CloudUpload,
   Download,
+  FileDown,
   Eye,
   FileText,
   Gauge,
@@ -28,6 +29,7 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
+  Trash2,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -53,6 +55,7 @@ type Patient = {
   initials: string;
   thumb: string;
   source?: "live" | "demo";
+  recordId?: string;
 };
 
 type ModelResult = {
@@ -83,6 +86,7 @@ function saveScan(scan: Patient) {
 function fromApiScan(item: Record<string, unknown>): Patient {
   const scannedAt = new Date(String(item.scanned_at || Date.now()));
   return {
+    recordId: String(item.id || ""),
     name: String(item.patient_name || "Unnamed patient"),
     id: String(item.patient_id || "—"),
     date: scannedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -119,6 +123,30 @@ async function persistScan(scan: Patient) {
   } catch {
     // Keep the local fallback when the API is unavailable.
   }
+}
+
+async function deleteScan(scan: Patient): Promise<boolean> {
+  if (scan.source !== "live" || !scan.recordId) return false;
+  try {
+    const response = await fetch(`/api/scans?id=${encodeURIComponent(scan.recordId)}`, { method: "DELETE" });
+    if (!response.ok) return false;
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId)));
+    window.dispatchEvent(new Event("veya-history-updated"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function exportScansCsv(scans: Patient[]) {
+  const rows = [["Patient", "Patient ID", "Date", "Time", "Eye", "Risk", "Score", "Source"], ...scans.map((scan) => [scan.name, scan.id, scan.date, scan.time, scan.eye, scan.risk, scan.score, scan.source === "live" ? "Live" : "Demo"])];
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `veya-scan-history-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 const tabs: { key: TabKey; label: string; icon: typeof Menu }[] = [
@@ -411,12 +439,18 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const [filter, setFilter] = useState<RiskFilter>("All");
   const [query, setQuery] = useState("");
   const [savedScans, setSavedScans] = useState<Patient[]>(readSavedScans);
+  const [manageMode, setManageMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
   const history = useMemo(() => [...savedScans, ...patients], [savedScans]);
   const filtered = useMemo(() => history.filter((patient) => (filter === "All" || patient.risk === filter) && `${patient.name} ${patient.id}`.toLowerCase().includes(query.toLowerCase())), [filter, history, query]);
   const normalCount = history.filter((patient) => patient.risk === "Normal").length;
   const highRiskCount = history.filter((patient) => patient.risk === "High risk").length;
+  const selectedScans = filtered.filter((patient) => patient.recordId && selectedIds.includes(patient.recordId));
+  const toggleSelected = (patient: Patient) => { if (!patient.recordId) return; setSelectedIds((ids) => ids.includes(patient.recordId!) ? ids.filter((id) => id !== patient.recordId) : [...ids, patient.recordId!]); };
+  const removeSelected = async () => { if (!selectedScans.length || !window.confirm(`Delete ${selectedScans.length} selected scan${selectedScans.length === 1 ? "" : "s"}?`)) return; setBusy(true); for (const scan of selectedScans) await deleteScan(scan); setSelectedIds([]); setBusy(false); };
   useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); void syncScans().then((scans) => { if (scans) setSavedScans(scans); }); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><button className="icon-button"><MoreHorizontal size={19} /></button></header><div className="history-summary"><div><strong>{history.length}</strong><span>Total screenings</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>Normal results</span></div><div><strong>{highRiskCount}</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div><div className="section-title-row section-title-row--history"><div><span className="eyebrow">ALL SAVED SCANS</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div><button className="icon-button"><SlidersHorizontal size={17} /></button></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <PatientRow key={`${patient.source}-${patient.id}`} patient={patient} onClick={() => onSelect(patient)} />) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label="Export history"><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label="Manage history"><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>Total screenings</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>Normal results</span></div><div><strong>{highRiskCount}</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} selected · demo items cannot be deleted</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? "Deleting..." : "Delete selected"}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">ALL SAVED SCANS</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={Boolean(patient.recordId && selectedIds.includes(patient.recordId))} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
 }
 
 function SettingsScreen() {
