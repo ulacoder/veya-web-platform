@@ -1,0 +1,45 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function client() {
+  if (!supabaseUrl || !serviceRoleKey) return null;
+  return createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const supabase = client();
+  if (!supabase) return res.status(503).json({ error: "Supabase is not configured" });
+
+  if (req.method === "GET") {
+    const limit = Math.min(Number(req.query.limit) || 100, 100);
+    const { data, error } = await supabase.from("scans").select("id,patient_name,patient_id,scanned_at,eye,risk,score,initials,thumb,source").order("scanned_at", { ascending: false }).limit(limit);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json(data ?? []);
+  }
+
+  if (req.method === "POST") {
+    const body = req.body ?? {};
+    const record = {
+      patient_name: String(body.name || "Unnamed patient").slice(0, 160),
+      patient_id: String(body.id || "").slice(0, 80),
+      scanned_at: body.scannedAt || new Date().toISOString(),
+      eye: body.eye === "OD" ? "OD" : "OS",
+      risk: body.risk === "High risk" ? "High risk" : "Normal",
+      score: String(body.score || "0%").slice(0, 16),
+      initials: String(body.initials || "UP").slice(0, 4),
+      thumb: String(body.thumb || "fundus-coral").slice(0, 40),
+      source: "live",
+    };
+    const { data, error } = await supabase.from("scans").insert(record).select("id,patient_name,patient_id,scanned_at,eye,risk,score,initials,thumb,source").single();
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(201).json(data);
+  }
+
+  res.setHeader("Allow", "GET, POST");
+  return res.status(405).json({ error: "Method not allowed" });
+}
+
+export const config = { api: { bodyParser: true } };

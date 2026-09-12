@@ -80,6 +80,47 @@ function saveScan(scan: Patient) {
   window.dispatchEvent(new Event("veya-history-updated"));
 }
 
+function fromApiScan(item: Record<string, unknown>): Patient {
+  const scannedAt = new Date(String(item.scanned_at || Date.now()));
+  return {
+    name: String(item.patient_name || "Unnamed patient"),
+    id: String(item.patient_id || "—"),
+    date: scannedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    time: scannedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    risk: item.risk === "High risk" ? "High risk" : "Normal",
+    score: String(item.score || "0%"),
+    eye: item.eye === "OD" ? "OD" : "OS",
+    initials: String(item.initials || "UP"),
+    thumb: String(item.thumb || "fundus-coral"),
+    source: "live",
+  };
+}
+
+async function syncScans(): Promise<Patient[] | null> {
+  try {
+    const response = await fetch("/api/scans?limit=100");
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!Array.isArray(data)) return null;
+    const scans = data.map((item) => fromApiScan(item));
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(scans));
+    window.dispatchEvent(new Event("veya-history-updated"));
+    return scans;
+  } catch {
+    return null;
+  }
+}
+
+async function persistScan(scan: Patient) {
+  saveScan(scan);
+  try {
+    const response = await fetch("/api/scans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(scan) });
+    if (response.ok) await syncScans();
+  } catch {
+    // Keep the local fallback when the API is unavailable.
+  }
+}
+
 const tabs: { key: TabKey; label: string; icon: typeof Menu }[] = [
   { key: "dashboard", label: "Main", icon: Menu },
   { key: "analysis", label: "Analysis", icon: Eye },
@@ -237,7 +278,7 @@ function Analysis({ onBack }: { onBack: () => void }) {
       const probabilities = inference?.dr_grade?.probabilities ?? [];
       const confidence = Math.round(((inference?.dr_grade?.confidence ?? Math.max(...probabilities, 0)) * 100));
       const now = new Date();
-      saveScan({
+      await persistScan({
         name: form.name.trim() || "Unnamed patient",
         id: form.id.trim() || `VE-${now.getTime().toString().slice(-5)}`,
         date: now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -374,7 +415,7 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const filtered = useMemo(() => history.filter((patient) => (filter === "All" || patient.risk === filter) && `${patient.name} ${patient.id}`.toLowerCase().includes(query.toLowerCase())), [filter, history, query]);
   const normalCount = history.filter((patient) => patient.risk === "Normal").length;
   const highRiskCount = history.filter((patient) => patient.risk === "High risk").length;
-  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
+  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); void syncScans().then((scans) => { if (scans) setSavedScans(scans); }); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
   return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><button className="icon-button"><MoreHorizontal size={19} /></button></header><div className="history-summary"><div><strong>{history.length}</strong><span>Total screenings</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>Normal results</span></div><div><strong>{highRiskCount}</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div><div className="section-title-row section-title-row--history"><div><span className="eyebrow">ALL SAVED SCANS</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div><button className="icon-button"><SlidersHorizontal size={17} /></button></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <PatientRow key={`${patient.source}-${patient.id}`} patient={patient} onClick={() => onSelect(patient)} />) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
 }
 
