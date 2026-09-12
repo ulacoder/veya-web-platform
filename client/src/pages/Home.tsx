@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import {
   Activity,
   AlertCircle,
@@ -52,15 +52,33 @@ type Patient = {
   eye: "OD" | "OS";
   initials: string;
   thumb: string;
+  source?: "live" | "demo";
 };
 
 type ModelResult = {
   result?: {
-    dr_grade?: { class: number; confidence: number };
+    dr_grade?: { class: number; confidence: number; probabilities?: number[] };
     glaucoma?: { probability: number; positive: boolean };
     cataract?: { probability: number; positive: boolean };
   };
 };
+
+const HISTORY_STORAGE_KEY = "veya_scan_history";
+
+function readSavedScans(): Patient[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveScan(scan: Patient) {
+  const next = [scan, ...readSavedScans().filter((item) => item.id !== scan.id)].slice(0, 100);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("veya-history-updated"));
+}
 
 const tabs: { key: TabKey; label: string; icon: typeof Menu }[] = [
   { key: "dashboard", label: "Main", icon: Menu },
@@ -70,10 +88,10 @@ const tabs: { key: TabKey; label: string; icon: typeof Menu }[] = [
 ];
 
 const patients: Patient[] = [
-  { name: "Aigerim Sadykova", id: "VE-24081", date: "Today", time: "09:42", risk: "High risk", score: "78%", eye: "OD", initials: "AS", thumb: "fundus-amber" },
-  { name: "Timur Bekov", id: "VE-24079", date: "Today", time: "08:56", risk: "Normal", score: "94%", eye: "OS", initials: "TB", thumb: "fundus-coral" },
-  { name: "Madina Omarova", id: "VE-24076", date: "Yesterday", time: "16:20", risk: "Normal", score: "89%", eye: "OD", initials: "MO", thumb: "fundus-violet" },
-  { name: "Rustam Ilyasov", id: "VE-24072", date: "Yesterday", time: "11:08", risk: "High risk", score: "67%", eye: "OS", initials: "RI", thumb: "fundus-blue" },
+  { name: "Aigerim Sadykova", id: "VE-24081", date: "Today", time: "09:42", risk: "High risk", score: "78%", eye: "OD", initials: "AS", thumb: "fundus-amber", source: "demo" },
+  { name: "Timur Bekov", id: "VE-24079", date: "Today", time: "08:56", risk: "Normal", score: "94%", eye: "OS", initials: "TB", thumb: "fundus-coral", source: "demo" },
+  { name: "Madina Omarova", id: "VE-24076", date: "Yesterday", time: "16:20", risk: "Normal", score: "89%", eye: "OD", initials: "MO", thumb: "fundus-violet", source: "demo" },
+  { name: "Rustam Ilyasov", id: "VE-24072", date: "Yesterday", time: "11:08", risk: "High risk", score: "67%", eye: "OS", initials: "RI", thumb: "fundus-blue", source: "demo" },
 ];
 
 function LogoMark({ light = false }: { light?: boolean }) {
@@ -212,7 +230,25 @@ function Analysis({ onBack }: { onBack: () => void }) {
       payload.append("file", uploadedFile);
       const response = await fetch(endpoint, { method: "POST", body: payload });
       if (!response.ok) throw new Error(`Inference API returned ${response.status}`);
-      setModelResult(await response.json());
+      const responseData = await response.json() as ModelResult;
+      setModelResult(responseData);
+      const inference = responseData.result;
+      const highRisk = (inference?.dr_grade?.class ?? 0) >= 1 || Boolean(inference?.glaucoma?.positive) || Boolean(inference?.cataract?.positive);
+      const probabilities = inference?.dr_grade?.probabilities ?? [];
+      const confidence = Math.round(((inference?.dr_grade?.confidence ?? Math.max(...probabilities, 0)) * 100));
+      const now = new Date();
+      saveScan({
+        name: form.name.trim() || "Unnamed patient",
+        id: form.id.trim() || `VE-${now.getTime().toString().slice(-5)}`,
+        date: now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        risk: highRisk ? "High risk" : "Normal",
+        score: `${Math.min(100, Math.max(0, confidence || (highRisk ? 72 : 94)))}%`,
+        eye,
+        initials: (form.name.trim() || "UP").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(),
+        thumb: highRisk ? "fundus-amber" : "fundus-coral",
+        source: "live",
+      });
       setStep(4);
     } catch (error) {
       setScanError(error instanceof Error ? `${error.message}. Проверьте API endpoint в Settings.` : "Inference failed. Проверьте API endpoint в Settings.");
@@ -333,8 +369,13 @@ function Results({ onRestart, patientName, eye, modelResult }: { onRestart: () =
 function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const [filter, setFilter] = useState<RiskFilter>("All");
   const [query, setQuery] = useState("");
-  const filtered = useMemo(() => patients.filter((patient) => (filter === "All" || patient.risk === filter) && `${patient.name} ${patient.id}`.toLowerCase().includes(query.toLowerCase())), [filter, query]);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><button className="icon-button"><MoreHorizontal size={19} /></button></header><div className="history-summary"><div><strong>128</strong><span>Total screenings</span></div><div><strong>91%</strong><span>Normal results</span></div><div><strong>12</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{patients.filter((patient) => patient.risk === item).length}</span>}</button>)}</div><div className="section-title-row section-title-row--history"><div><span className="eyebrow">SEPTEMBER 2026</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div><button className="icon-button"><SlidersHorizontal size={17} /></button></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <PatientRow key={patient.id} patient={patient} onClick={() => onSelect(patient)} />) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
+  const [savedScans, setSavedScans] = useState<Patient[]>(readSavedScans);
+  const history = useMemo(() => [...savedScans, ...patients], [savedScans]);
+  const filtered = useMemo(() => history.filter((patient) => (filter === "All" || patient.risk === filter) && `${patient.name} ${patient.id}`.toLowerCase().includes(query.toLowerCase())), [filter, history, query]);
+  const normalCount = history.filter((patient) => patient.risk === "Normal").length;
+  const highRiskCount = history.filter((patient) => patient.risk === "High risk").length;
+  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><button className="icon-button"><MoreHorizontal size={19} /></button></header><div className="history-summary"><div><strong>{history.length}</strong><span>Total screenings</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>Normal results</span></div><div><strong>{highRiskCount}</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div><div className="section-title-row section-title-row--history"><div><span className="eyebrow">ALL SAVED SCANS</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div><button className="icon-button"><SlidersHorizontal size={17} /></button></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <PatientRow key={`${patient.source}-${patient.id}`} patient={patient} onClick={() => onSelect(patient)} />) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
 }
 
 function SettingsScreen() {
@@ -342,7 +383,7 @@ function SettingsScreen() {
   const [saved, setSaved] = useState(true);
   const [calibrated, setCalibrated] = useState(true);
   const [autoUpload, setAutoUpload] = useState(false);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><Settings2 size={18} /></AppIcon><div><span className="eyebrow">WORKSPACE</span><h1>Settings</h1></div></div><button className="icon-button"><CircleHelp size={18} /></button></header><section className="settings-hero"><div className="settings-hero__orb"><PlugZap size={21} /></div><div><span className="eyebrow">DEVICE STATUS</span><h2>Everything is in sync.</h2><p>visoScope 2.0 is paired and ready for your next capture.</p></div><StatusPill compact /></section><div className="settings-group"><div className="group-label"><span>AI BACKEND</span><span className="demo-tag">MODEL READY</span></div><div className="settings-card"><label className="setting-field"><span>API endpoint URL</span><div className="setting-input"><Wifi size={15} /><input value={endpoint} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={() => { localStorage.setItem("veya_api_endpoint", endpoint); setSaved(true); }} /></div><small>Connect your FastAPI or PyTorch model when ready.</small></label><div className="setting-row"><div><strong>Live AI screening</strong><span>Send fundus images to the configured inference service.</span></div><span className="switch switch--on"><i /></span></div></div></div><div className="settings-group"><div className="group-label"><span>CLINIC PROFILE</span><button className="text-button">Edit <ArrowUpRight size={14} /></button></div><div className="settings-card settings-card--profile"><div className="clinic-avatar">BG</div><div><strong>BIO&GEN Clinic</strong><span>Almaty, Kazakhstan</span></div><ChevronRight size={17} /></div></div><div className="settings-group"><div className="group-label"><span>VISOSCOPE 2.0</span><span className="calibration-status"><Check size={12} /> Calibrated</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="blue"><Camera size={16} /></AppIcon><div><strong>Optical preset</strong><span>iPhone 14 Pro · Standard field</span></div></div><ChevronRight size={16} /></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="mint"><Target size={16} /></AppIcon><div><strong>Camera calibration</strong><span>Last checked today at 08:12</span></div></div><button className={`toggle-button${calibrated ? " is-active" : ""}`} onClick={() => setCalibrated(!calibrated)}>{calibrated ? "Ready" : "Check"}</button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="amber"><CloudUpload size={16} /></AppIcon><div><strong>Auto-upload after capture</strong><span>Send captures directly to endpoint</span></div></div><button className={`toggle-switch${autoUpload ? " is-active" : ""}`} onClick={() => setAutoUpload(!autoUpload)} aria-label="Toggle auto-upload"><i /></button></div></div></div><div className="settings-footer"><ShieldCheck size={15} /> Patient data stays on this device in demo mode.</div>{!saved && <span className="save-toast"><Check size={14} />Endpoint draft updated</span>}</div>;
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><Settings2 size={18} /></AppIcon><div><span className="eyebrow">WORKSPACE</span><h1>Settings</h1></div></div><button className="icon-button"><CircleHelp size={18} /></button></header><section className="settings-hero"><div className="settings-hero__orb"><PlugZap size={21} /></div><div><span className="eyebrow">DEVICE STATUS</span><h2>Everything is in sync.</h2><p>Capture service is paired and ready for your next scan.</p></div><StatusPill compact /></section><div className="settings-group"><div className="group-label"><span>AI BACKEND</span><span className="demo-tag">MODEL READY</span></div><div className="settings-card"><label className="setting-field"><span>API endpoint URL</span><div className="setting-input"><Wifi size={15} /><input value={endpoint} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={() => { localStorage.setItem("veya_api_endpoint", endpoint); setSaved(true); }} /></div><small>Connect your FastAPI or PyTorch model when ready.</small></label><div className="setting-row"><div><strong>Live AI screening</strong><span>Send fundus images to the configured inference service.</span></div><span className="switch switch--on"><i /></span></div></div></div><div className="settings-group"><div className="group-label"><span>CLINIC PROFILE</span><button className="text-button">Edit <ArrowUpRight size={14} /></button></div><div className="settings-card settings-card--profile"><div className="clinic-avatar">BG</div><div><strong>BIO&GEN Clinic</strong><span>Almaty, Kazakhstan</span></div><ChevronRight size={17} /></div></div><div className="settings-group"><div className="group-label"><span>CAPTURE SYSTEM</span><span className="calibration-status"><Check size={12} /> Calibrated</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="blue"><Camera size={16} /></AppIcon><div><strong>Optical capture</strong><span>Standard retinal field</span></div></div><ChevronRight size={16} /></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="mint"><Target size={16} /></AppIcon><div><strong>Camera calibration</strong><span>Last checked today at 08:12</span></div></div><button className={`toggle-button${calibrated ? " is-active" : ""}`} onClick={() => setCalibrated(!calibrated)}>{calibrated ? "Ready" : "Check"}</button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="amber"><CloudUpload size={16} /></AppIcon><div><strong>Auto-upload after capture</strong><span>Send captures directly to endpoint</span></div></div><button className={`toggle-switch${autoUpload ? " is-active" : ""}`} onClick={() => setAutoUpload(!autoUpload)} aria-label="Toggle auto-upload"><i /></button></div></div></div><div className="settings-footer"><ShieldCheck size={15} /> Scan history is stored securely in this browser.</div>{!saved && <span className="save-toast"><Check size={14} />Endpoint draft updated</span>}</div>;
 }
 
 function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => void }) {
