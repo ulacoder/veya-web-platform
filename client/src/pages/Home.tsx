@@ -61,6 +61,11 @@ const resultTranslations: Record<Language, Record<string, string>> = {
   ru: { screeningComplete: "СКРИНИНГ ЗАВЕРШЁН", clinicalSignal: "Проверьте|клинический сигнал.", inferenceDone: "Работа реальной модели завершена.", triage: "СТАТУС ТРИАЖА", noResult: "Нет результата", signalBreakdown: "РАЗБОР СИГНАЛОВ", modelResults: "Результаты AI-модели", liveModel: "ЖИВАЯ МОДЕЛЬ", rawResponse: "Сырой ответ AI (JSON)", clinicalAction: "КЛИНИЧЕСКОЕ ДЕЙСТВИЕ", referDilated: "Направить на расширенное обследование", confirmFollowup: "Результат следует подтвердить клиническим осмотром и зафиксировать наблюдение.", exportReport: "Экспорт PDF-отчёта", another: "Начать новый скрининг", allFilter: "Все", highRiskFilter: "Высокий риск", normalFilter: "Норма", negative: "Отрицательно", positive: "ПОЛОЖИТЕЛЬНО" },
   kk: { screeningComplete: "СКРИНИНГ АЯҚТАЛДЫ", clinicalSignal: "Клиникалық|сигналды тексеріңіз.", inferenceDone: "Нақты модель талдауы аяқталды.", triage: "ТРИАЖ МӘРТЕБЕСІ", noResult: "Нәтиже жоқ", signalBreakdown: "СИГНАЛ ТАЛДАУЫ", modelResults: "AI моделінің нәтижелері", liveModel: "НАҒЫЗ МОДЕЛЬ", rawResponse: "AI жауабы (JSON)", clinicalAction: "КЛИНИКАЛЫҚ ӘРЕКЕТ", referDilated: "Кеңейтілген тексеруге жіберу", confirmFollowup: "Нәтижені клиникалық тексерумен растау және бақылауды тіркеу қажет.", exportReport: "PDF есебін экспорттау", another: "Жаңа скрининг бастау", allFilter: "Барлығы", highRiskFilter: "Жоғары қауіп", normalFilter: "Қалыпты", negative: "Теріс", positive: "ОҢ НӘТИЖЕ" },
 };
+const clinicalTranslations: Record<Language, Record<string, string>> = {
+  en: { readySignal: "Ready for|the signal.", noDr: "No DR detected", healthyRetina: "Diabetic retinopathy: Grade {grade} (healthy retina, {confidence}% confidence)", drName: "Diabetic retinopathy", drProbability: "{value}% disease probability (Detected: Grade {grade})", grade: "Grade", glaucomaName: "Glaucoma", cataractName: "Cataract", probability: "{value}% probability", diseasePositive: "POSITIVE", diseaseNegative: "Negative", patientInference: "Real model inference completed.", fundusImage: "FUNDUS IMAGE", uploadedPreview: "Uploaded fundus preview", inferenceTitle: "VEYA AI inference" },
+  ru: { readySignal: "Готовы к|анализу.", noDr: "Диабетическая ретинопатия не выявлена", healthyRetina: "Диабетическая ретинопатия: степень {grade} (здоровая сетчатка, уверенность {confidence}%)", drName: "Диабетическая ретинопатия", drProbability: "Вероятность заболевания {value}% (степень: {grade})", grade: "Степень", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Вероятность {value}%", diseasePositive: "ПОЛОЖИТЕЛЬНО", diseaseNegative: "Отрицательно", patientInference: "Работа реальной модели завершена.", fundusImage: "СНИМОК ГЛАЗНОГО ДНА", uploadedPreview: "Предпросмотр снимка", inferenceTitle: "AI-анализ VEYA" },
+  kk: { readySignal: "Сигнал|дайын.", noDr: "Диабеттік ретинопатия анықталмады", healthyRetina: "Диабеттік ретинопатия: {grade}-дәрежесі (торлы қабық сау, сенімділік {confidence}%)", drName: "Диабеттік ретинопатия", drProbability: "Ауру ықтималдығы {value}% (дәрежесі: {grade})", grade: "Дәреже", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Ықтималдық {value}%", diseasePositive: "ОҢ НӘТИЖЕ", diseaseNegative: "Теріс", patientInference: "Нақты модель талдауы аяқталды.", fundusImage: "КӨЗ ТҮБІНІҢ СУРЕТІ", uploadedPreview: "Сурет алдын ала көрінісі", inferenceTitle: "VEYA AI талдауы" },
+};
 const dashboardTranslations: Record<Language, Record<string, string>> = {
   en: { screenEarlier: "Screen earlier.", seeClearer: "See clearer.", heroDescription: "Veya makes retinal screening accessible in every clinic — with a result in under 30 seconds.", modelReadyFooter: "Model endpoint ready", analysisTime: "~ 30 sec analysis", today: "TODAY AT A GLANCE", practicePulse: "Practice pulse", screeningsToday: "Screenings today", fromYesterday: "+6 from yesterday", highRiskDetected: "High risk detected", needsFollowup: "Needs follow-up", avgLatency: "Avg AI latency", last30: "Last 30 screenings", whatSees: "WHAT VEYA SEES", signalsDecision: "Three signals. One clearer decision.", signalsDescription: "Retinal patterns are screened for early signs of diabetic retinopathy, glaucoma, and cataract.", retinopathy: "Retinopathy", glaucoma: "Glaucoma", cataract: "Cataract", recentActivity: "RECENT ACTIVITY", latestScreenings: "Latest screenings" },
   ru: { screenEarlier: "Начните скрининг раньше.", seeClearer: "Видите яснее.", heroDescription: "Veya делает скрининг сетчатки доступным в каждой клинике — результат менее чем за 30 секунд.", modelReadyFooter: "Модель готова", analysisTime: "~ 30 сек анализа", today: "СЕГОДНЯ", practicePulse: "Пульс клиники", screeningsToday: "Скринингов сегодня", fromYesterday: "+6 со вчера", highRiskDetected: "Высокий риск", needsFollowup: "Нужно наблюдение", avgLatency: "Средняя задержка AI", last30: "Последние 30 скринингов", whatSees: "ЧТО ВИДИТ VEYA", signalsDecision: "Три сигнала. Одно ясное решение.", signalsDescription: "Паттерны сетчатки проверяются на ранние признаки диабетической ретинопатии, глаукомы и катаракты.", retinopathy: "Ретинопатия", glaucoma: "Глаукома", cataract: "Катаракта", recentActivity: "НЕДАВНЯЯ АКТИВНОСТЬ", latestScreenings: "Последние скрининги" },
@@ -408,15 +413,15 @@ function Results({ onRestart, patientName, eye, modelResult }: { onRestart: () =
   const highRisk = (result?.dr_grade?.class ?? 0) >= 1 || Boolean(result?.glaucoma?.positive) || Boolean(result?.cataract?.positive);
 
   // Detailed status message
-  let statusTitle = "Healthy";
-  let statusDetail = "No pathology detected in this screening.";
+  let statusTitle = t("noDr");
+  let statusDetail = t("healthyRetina").replace("{grade}", "0").replace("{confidence}", "100");
   const detectedConditions = [];
 
   if (result?.dr_grade) {
     const grade = result.dr_grade.class;
     if (grade === 0) {
-      statusTitle = "No DR detected";
-      statusDetail = `Diabetic retinopathy: Grade ${grade} (healthy retina, ${Math.round((drProbabilities[0] ?? 0) * 100)}% confidence)`;
+      statusTitle = t("noDr");
+      statusDetail = t("healthyRetina").replace("{grade}", String(grade)).replace("{confidence}", String(Math.round((drProbabilities[0] ?? 0) * 100)));
     } else if (grade === 1) {
       statusTitle = "Mild DR detected";
       statusDetail = `Diabetic retinopathy: Grade ${grade} (mild non-proliferative DR, requires monitoring)`;
@@ -463,24 +468,24 @@ function Results({ onRestart, patientName, eye, modelResult }: { onRestart: () =
 
   const metrics = [
     {
-      label: "Diabetic retinopathy",
+      label: t("drName"),
       value: drValue,
       tone: "amber",
-      note: result?.dr_grade ? `${drValue}% disease probability (Detected: Grade ${result.dr_grade.class})` : t("noResult"),
+      note: result?.dr_grade ? t("drProbability").replace("{value}", String(drValue)).replace("{grade}", String(result.dr_grade.class)) : t("noResult"),
       detail: drProbs
     },
     {
-      label: "Glaucoma",
+      label: t("glaucomaName"),
       value: glaucomaValue,
       tone: "blue",
-      note: result?.glaucoma ? `${glaucomaValue}% probability - ${result.glaucoma.positive ? t("positive") : t("negative")}` : t("noResult"),
+      note: result?.glaucoma ? `${t("probability").replace("{value}", String(glaucomaValue))} - ${result.glaucoma.positive ? t("positive") : t("negative")}` : t("noResult"),
       detail: null
     },
     {
-      label: "Cataract",
+      label: t("cataractName"),
       value: cataractValue,
       tone: "violet",
-      note: result?.cataract ? `${cataractValue}% probability - ${result.cataract.positive ? t("positive") : t("negative")}` : t("noResult"),
+      note: result?.cataract ? `${t("probability").replace("{value}", String(cataractValue))} - ${result.cataract.positive ? t("positive") : t("negative")}` : t("noResult"),
       detail: null
     }
   ];
@@ -526,7 +531,7 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem("veya_language") as Language) || "en");
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [drawerPatient, setDrawerPatient] = useState<Patient | null>(null);
-  const t = (key: string) => resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
+  const t = (key: string) => clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
   const navigate = (tab: TabKey) => setActiveTab(tab);
   const changeLanguage = (next: Language) => { setLanguage(next); localStorage.setItem("veya_language", next); };
   return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, label, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
