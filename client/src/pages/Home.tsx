@@ -279,8 +279,14 @@ function RiskBadge({ risk }: { risk: Patient["risk"] }) {
   return <span className={`risk-badge risk-badge--${risk === "High risk" ? "high" : "normal"}`}><span />{risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</span>;
 }
 function formatToday(language: Language) {
-  const locale = language === "kk" ? "kk-KZ" : language === "ru" ? "ru-RU" : "en-US";
-  return new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  const today = new Date();
+  if (language === "kk") {
+    const weekdays = ["жексенбі", "дүйсенбі", "сейсенбі", "сәрсенбі", "бейсенбі", "жұма", "сенбі"];
+    const months = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
+    return `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()} ж., ${weekdays[today.getDay()]}`;
+  }
+  const locale = language === "ru" ? "ru-RU" : "en-US";
+  return new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(today);
 }
 function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKey) => void }) {
   const { language, t } = useI18n();
