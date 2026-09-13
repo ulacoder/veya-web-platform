@@ -276,9 +276,12 @@ function RiskBadge({ risk }: { risk: Patient["risk"] }) {
   const { t } = useI18n();
   return <span className={`risk-badge risk-badge--${risk === "High risk" ? "high" : "normal"}`}><span />{risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</span>;
 }
-
+function formatToday(language: Language) {
+  const locale = language === "kk" ? "kk-KZ" : language === "ru" ? "ru-RU" : "en-US";
+  return new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+}
 function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKey) => void }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   return (
     <div className="screen screen--dashboard">
       <header className="topbar">
@@ -287,7 +290,7 @@ function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKe
       </header>
 
       <section className="welcome-row">
-        <div><p className="date-line"><SunMedium size={14} /> Wednesday, 10 September 2026</p><h1>{t("morning")}, <em>Dr. Aida.</em></h1><p className="welcome-detail">{t("workspaceReady")}</p></div>
+        <div><p className="date-line"><SunMedium size={14} /> {formatToday(language)}</p><h1>{t("morning")}, <em>Dr. Aida.</em></h1><p className="welcome-detail">{t("workspaceReady")}</p></div>
         <StatusPill />
       </section>
 
