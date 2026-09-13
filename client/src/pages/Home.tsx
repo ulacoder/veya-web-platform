@@ -42,7 +42,7 @@ import {
   Zap,
 } from "lucide-react";
 
-type TabKey = "dashboard" | "analysis" | "history" | "settings";
+type TabKey = "dashboard" | "analysis" | "history" | "settings" | "profile";
 type RiskFilter = "All" | "High risk" | "Normal";
 type Language = "en" | "ru" | "kk";
 const LanguageContext = createContext<{ language: Language; setLanguage: (language: Language) => void; t: (key: string) => string } | null>(null);
@@ -51,6 +51,7 @@ const AUTH_USERS_KEY = "veya_mock_users";
 const ACTIVE_PROFILE_KEY = "veya_active_profile";
 function readProfiles(): Profile[] { try { const value = JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } }
 function activeProfile(): Profile | null { const id = localStorage.getItem(ACTIVE_PROFILE_KEY); return readProfiles().find((profile) => profile.id === id) || null; }
+function profileInitials(name: string) { return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "DR"; }
 function profileHistoryKey() { return `${HISTORY_STORAGE_KEY_BASE}_${localStorage.getItem(ACTIVE_PROFILE_KEY) || "guest"}`; }
 const translations: Record<Language, Record<string, string>> = {
   en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo", ophthalmic: "Ophthalmic screening", morning: "Good morning", workspaceReady: "Your screening workspace is ready.", clinical: "CLINICAL INTELLIGENCE", start: "Start new screening", viewHistory: "View history", newWorkflow: "NEW WORKFLOW", newScreening: "New screening", patient: "Patient", continue: "Continue", capture: "Capture", review: "Review", settingsTitle: "Settings", connected: "Connected", save: "Save", back: "Back", upload: "Upload image", run: "Run AI screening", analyzing: "Analyzing signal...", languageSaved: "Language is saved on this device" },
@@ -209,6 +210,7 @@ const tabs: { key: TabKey; label: string; icon: typeof Menu }[] = [
   { key: "analysis", label: "Analysis", icon: Eye },
   { key: "history", label: "History", icon: History },
   { key: "settings", label: "Settings", icon: Settings2 },
+  { key: "profile", label: "Profile", icon: UserRound },
 ];
 
 const patients: Patient[] = [
@@ -287,7 +289,7 @@ function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKe
     <div className="screen screen--dashboard">
       <header className="topbar">
         <div className="brand-lockup"><LogoMark /><div><div className="brand-name">VEYA<span>AI</span></div><div className="brand-kicker">{t("ophthalmic")}</div></div></div>
-        <button className="avatar-button" aria-label="Open clinician profile"><span>DR</span><span className="avatar-status" /></button>
+        <button className="avatar-button" aria-label="Open clinician profile" onClick={() => onTab("profile")}><span>{profileInitials(profile?.name || "Dr")}</span><span className="avatar-status" /></button>
       </header>
 
       <section className="welcome-row">
@@ -533,6 +535,15 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
   return <div className="drawer-backdrop" onClick={onClose}><aside className="patient-drawer" onClick={(e) => e.stopPropagation()}><div className="drawer-handle" /><div className="drawer-top"><span className="eyebrow">{t("screeningDetail")}</span><button className="icon-button" onClick={onClose} aria-label={t("back")}><X size={18} /></button></div><div className="drawer-profile"><FundusThumb variant={patient.thumb} /><div><h2>{patient.name}</h2><span>{patient.id} · {patient.date}, {patient.time}</span></div></div><div className="drawer-status"><div><span className="eyebrow">{t("triage")}</span><strong>{patient.risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</strong></div><RiskBadge risk={patient.risk} /></div><div className="drawer-section"><span className="eyebrow">{t("captureDetails")}</span><div className="detail-grid"><div><span>{t("eye")}</span><strong>{patient.eye} · {patient.eye === "OS" ? t("left") : t("right")}</strong></div><div><span>{t("confidence")}</span><strong>{patient.score}</strong></div><div><span>{t("latency")}</span><strong>28.4 sec</strong></div><div><span>{t("device")}</span><strong>visoScope 2.0</strong></div></div></div><div className="drawer-section"><span className="eyebrow">{t("recommendation")}</span><div className="recommendation recommendation--drawer"><AppIcon tone="mint"><Stethoscope size={16} /></AppIcon><div><strong>{patient.risk === "High risk" ? t("followup") : t("routine")}</strong><p>{t("reviewContext")}</p></div></div></div><button className="button button--primary button--full"><Download size={16} />{t("exportReport")}</button></aside></div>;
 }
 
+function ProfileScreen({ onLogout }: { onLogout: () => void }) {
+  const { language } = useI18n(); const current = activeProfile();
+  const ru = language === "ru"; const kk = language === "kk";
+  const text = { title: ru ? "Профиль" : kk ? "Профиль" : "Profile", name: ru ? "Имя врача" : kk ? "Дәрігер аты" : "Doctor name", hospital: ru ? "Больница или клиника" : kk ? "Аурухана немесе клиника" : "Hospital or clinic", email: "Email", save: ru ? "Сохранить изменения" : kk ? "Өзгерістерді сақтау" : "Save changes", logout: ru ? "Выйти из аккаунта" : kk ? "Аккаунттан шығу" : "Log out", saved: ru ? "Профиль сохранён" : kk ? "Профиль сақталды" : "Profile saved" };
+  const [name, setName] = useState(current?.name || ""); const [hospital, setHospital] = useState(current?.hospital || ""); const [saved, setSaved] = useState(false);
+  const save = () => { if (!current) return; const next = readProfiles().map((profile) => profile.id === current.id ? { ...profile, name: name.trim() || profile.name, hospital: hospital.trim() || profile.hospital } : profile); localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(next)); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  return <div className="screen profile-screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><UserRound size={18} /></AppIcon><div><span className="eyebrow">VEYA AI</span><h1>{text.title}</h1></div></div></header><section className="profile-hero"><div className="profile-avatar">{profileInitials(name)}</div><h2>{name || "Doctor"}</h2><p>{hospital}</p></section><div className="profile-card"><label>{text.name}<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>{text.hospital}<input value={hospital} onChange={(event) => setHospital(event.target.value)} /></label><label>{text.email}<input value={current?.email || ""} disabled /></label><button className="button button--primary button--full" onClick={save}>{text.save}</button>{saved && <div className="profile-saved"><Check size={14} />{text.saved}</div>}<button className="button button--ghost button--full" onClick={onLogout}>{text.logout}</button></div></div>;
+}
+
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: Profile) => void }) {
   const { language } = useI18n();
   const ru = language === "ru"; const kk = language === "kk";
@@ -548,9 +559,9 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem("veya_language") as Language) || "en");
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [drawerPatient, setDrawerPatient] = useState<Patient | null>(null);
-  const t = (key: string) => clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
+  const t = (key: string) => key === "profile" ? (language === "ru" ? "Профиль" : language === "kk" ? "Профиль" : "Profile") : clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
   const navigate = (tab: TabKey) => setActiveTab(tab);
   const changeLanguage = (next: Language) => { setLanguage(next); localStorage.setItem("veya_language", next); };
   if (!profile) return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><AuthScreen onAuthenticated={setProfile} /></LanguageContext.Provider>;
-  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key === "dashboard" ? "main" : key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
+  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}{activeTab === "profile" && <ProfileScreen onLogout={() => { localStorage.removeItem(ACTIVE_PROFILE_KEY); window.location.reload(); }} />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key === "dashboard" ? "main" : key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
 }
