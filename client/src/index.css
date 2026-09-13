@@ -227,3 +227,16 @@ button:disabled { cursor: wait; opacity: .72; }
 .result-banner--normal > svg { color: var(--veya-green); }
 .capture-tip--error { color: #9b4b3d; background: #fff0ec; }
 .capture-tip--error svg { color: #d66550; }
+
+.language-floating { position: fixed; top: 18px; right: 24px; z-index: 20; }
+.language-switcher { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px 5px 10px; border: 1px solid var(--line); border-radius: 10px; color: #80948b; background: rgba(255,255,255,.92); box-shadow: 0 6px 18px rgba(15,54,39,.06); font-size: 9px; font-weight: 800; }
+.language-switcher select { border: 0; outline: 0; color: var(--veya-deep); background: transparent; font-size: 10px; font-weight: 850; cursor: pointer; }
+.history-actions { display: flex; align-items: center; gap: 6px; }
+.history-manage-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 10px 12px; border: 1px solid #dcece2; border-radius: 12px; color: #7b9187; background: #f4fbf6; font-size: 10px; }
+.history-manage-bar .text-button { display: inline-flex; align-items: center; gap: 5px; color: #b44e4b; font-size: 10px; }
+.history-manage-bar .text-button:disabled { opacity: .45; cursor: not-allowed; }
+.history-item { display: flex; align-items: center; gap: 8px; }
+.history-item > input { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--veya-green); }
+.history-item > .patient-row { flex: 1; min-width: 0; }
+@media (max-width: 599px) { .language-floating { top: 10px; right: 12px; } .language-switcher { box-shadow: none; } }
+.nav-badge { display: none !important; }

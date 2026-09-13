@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import {
   Activity,
   AlertCircle,
@@ -44,6 +44,15 @@ import {
 
 type TabKey = "dashboard" | "analysis" | "history" | "settings";
 type RiskFilter = "All" | "High risk" | "Normal";
+type Language = "en" | "ru" | "kk";
+const LanguageContext = createContext<{ language: Language; setLanguage: (language: Language) => void; t: (key: string) => string } | null>(null);
+const translations: Record<Language, Record<string, string>> = {
+  en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo" },
+  ru: { main: "Главная", analysis: "Анализ", history: "История", settings: "Настройки", archive: "АРХИВ ПАЦИЕНТОВ", total: "Всего скринингов", normal: "Нормальные результаты", followups: "На контроле", allScans: "ВСЕ СОХРАНЁННЫЕ СКАНЫ", screening: "сканирование", screenings: "сканирований", search: "Поиск по имени или ID пациента", export: "Экспорт истории", manage: "Управление историей", selected: "выбрано", demoProtected: "демо-записи нельзя удалить", delete: "Удалить выбранные", deleting: "Удаление...", noFound: "Сканы не найдены", tryAgain: "Измените имя или фильтр.", language: "Язык", live: "Реальный", demo: "Демо" },
+  kk: { main: "Басты бет", analysis: "Талдау", history: "Тарих", settings: "Баптаулар", archive: "ПАЦИЕНТТЕР МҰРАҒАТЫ", total: "Барлық скринингтер", normal: "Қалыпты нәтижелер", followups: "Бақылау қажет", allScans: "БАРЛЫҚ САҚТАЛҒАН СКАНДАР", screening: "скрининг", screenings: "скрининг", search: "Пациент аты немесе ID бойынша іздеу", export: "Тарихты экспорттау", manage: "Тарихты басқару", selected: "таңдалды", demoProtected: "демо жазбаларын жоюға болмайды", delete: "Таңдалғанды жою", deleting: "Жойылуда...", noFound: "Скан табылмады", tryAgain: "Басқа ат немесе сүзгі таңдаңыз.", language: "Тіл", live: "Нақты", demo: "Демо" },
+};
+function useI18n() { return useContext(LanguageContext) ?? { language: "en" as Language, setLanguage: () => undefined, t: (key: string) => key }; }
+function LanguageSwitcher() { const { language, setLanguage, t } = useI18n(); return <label className="language-switcher"><span>{t("language")}</span><select value={language} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={t("language")}><option value="kk">KZ</option><option value="ru">RU</option><option value="en">EN</option></select></label>; }
 type Patient = {
   name: string;
   id: string;
@@ -126,11 +135,12 @@ async function persistScan(scan: Patient) {
 }
 
 async function deleteScan(scan: Patient): Promise<boolean> {
-  if (scan.source !== "live" || !scan.recordId) return false;
+  if (scan.source !== "live") return false;
   try {
-    const response = await fetch(`/api/scans?id=${encodeURIComponent(scan.recordId)}`, { method: "DELETE" });
+    const lookup = scan.recordId ? `id=${encodeURIComponent(scan.recordId)}` : `patient_id=${encodeURIComponent(scan.id)}`;
+    const response = await fetch(`/api/scans?${lookup}`, { method: "DELETE" });
     if (!response.ok) return false;
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId)));
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId && item.id !== scan.id)));
     window.dispatchEvent(new Event("veya-history-updated"));
     return true;
   } catch {
@@ -436,6 +446,7 @@ function Results({ onRestart, patientName, eye, modelResult }: { onRestart: () =
 }
 
 function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
+  const { t } = useI18n();
   const [filter, setFilter] = useState<RiskFilter>("All");
   const [query, setQuery] = useState("");
   const [savedScans, setSavedScans] = useState<Patient[]>(readSavedScans);
@@ -450,7 +461,7 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const toggleSelected = (patient: Patient) => { if (!patient.recordId) return; setSelectedIds((ids) => ids.includes(patient.recordId!) ? ids.filter((id) => id !== patient.recordId) : [...ids, patient.recordId!]); };
   const removeSelected = async () => { if (!selectedScans.length || !window.confirm(`Delete ${selectedScans.length} selected scan${selectedScans.length === 1 ? "" : "s"}?`)) return; setBusy(true); for (const scan of selectedScans) await deleteScan(scan); setSelectedIds([]); setBusy(false); };
   useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); void syncScans().then((scans) => { if (scans) setSavedScans(scans); }); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">PATIENT ARCHIVE</span><h1>History</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label="Export history"><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label="Manage history"><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>Total screenings</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>Normal results</span></div><div><strong>{highRiskCount}</strong><span>Follow-ups</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or patient ID" />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} selected · demo items cannot be deleted</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? "Deleting..." : "Delete selected"}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">ALL SAVED SCANS</span><h2>{filtered.length} screening{filtered.length === 1 ? "" : "s"}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={Boolean(patient.recordId && selectedIds.includes(patient.recordId))} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>No screenings found</strong><span>Try a different name or filter.</span></div>}</div></div>;
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">{t("archive")}</span><h1>{t("history")}</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label={t("export")}><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label={t("manage")}><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>{t("total")}</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>{t("normal")}</span></div><div><strong>{highRiskCount}</strong><span>{t("followups")}</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} {t("selected")} · {t("demoProtected")}</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? t("deleting") : t("delete")}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">{t("allScans")}</span><h2>{filtered.length} {filtered.length === 1 ? t("screening") : t("screenings")}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={Boolean(patient.recordId && selectedIds.includes(patient.recordId))} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>{t("noFound")}</strong><span>{t("tryAgain")}</span></div>}</div></div>;
 }
 
 function SettingsScreen() {
@@ -466,8 +477,11 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
 }
 
 export default function Home() {
+  const [language, setLanguage] = useState<Language>(() => (localStorage.getItem("veya_language") as Language) || "en");
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [drawerPatient, setDrawerPatient] = useState<Patient | null>(null);
+  const t = (key: string) => translations[language][key] || translations.en[key] || key;
   const navigate = (tab: TabKey) => setActiveTab(tab);
-  return <div className="app-shell"><div className="app-frame"><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, label, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{label}</span>{key === "history" && <i className="nav-badge">3</i>}</button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div>;
+  const changeLanguage = (next: Language) => { setLanguage(next); localStorage.setItem("veya_language", next); };
+  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, label, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
 }
