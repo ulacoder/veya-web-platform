@@ -47,9 +47,9 @@ type RiskFilter = "All" | "High risk" | "Normal";
 type Language = "en" | "ru" | "kk";
 const LanguageContext = createContext<{ language: Language; setLanguage: (language: Language) => void; t: (key: string) => string } | null>(null);
 const translations: Record<Language, Record<string, string>> = {
-  en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo" },
-  ru: { main: "Главная", analysis: "Анализ", history: "История", settings: "Настройки", archive: "АРХИВ ПАЦИЕНТОВ", total: "Всего скринингов", normal: "Нормальные результаты", followups: "На контроле", allScans: "ВСЕ СОХРАНЁННЫЕ СКАНЫ", screening: "сканирование", screenings: "сканирований", search: "Поиск по имени или ID пациента", export: "Экспорт истории", manage: "Управление историей", selected: "выбрано", demoProtected: "демо-записи нельзя удалить", delete: "Удалить выбранные", deleting: "Удаление...", noFound: "Сканы не найдены", tryAgain: "Измените имя или фильтр.", language: "Язык", live: "Реальный", demo: "Демо" },
-  kk: { main: "Басты бет", analysis: "Талдау", history: "Тарих", settings: "Баптаулар", archive: "ПАЦИЕНТТЕР МҰРАҒАТЫ", total: "Барлық скринингтер", normal: "Қалыпты нәтижелер", followups: "Бақылау қажет", allScans: "БАРЛЫҚ САҚТАЛҒАН СКАНДАР", screening: "скрининг", screenings: "скрининг", search: "Пациент аты немесе ID бойынша іздеу", export: "Тарихты экспорттау", manage: "Тарихты басқару", selected: "таңдалды", demoProtected: "демо жазбаларын жоюға болмайды", delete: "Таңдалғанды жою", deleting: "Жойылуда...", noFound: "Скан табылмады", tryAgain: "Басқа ат немесе сүзгі таңдаңыз.", language: "Тіл", live: "Нақты", demo: "Демо" },
+  en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo", ophthalmic: "Ophthalmic screening", morning: "Good morning", workspaceReady: "Your screening workspace is ready.", clinical: "CLINICAL INTELLIGENCE", start: "Start new screening", viewHistory: "View history", newWorkflow: "NEW WORKFLOW", newScreening: "New screening", patient: "Patient", continue: "Continue", capture: "Capture", review: "Review", settingsTitle: "Settings", connected: "Connected", save: "Save", back: "Back", upload: "Upload image", run: "Run AI screening", analyzing: "Analyzing signal...", languageSaved: "Language is saved on this device" },
+  ru: { main: "Главная", analysis: "Анализ", history: "История", settings: "Настройки", archive: "АРХИВ ПАЦИЕНТОВ", total: "Всего скринингов", normal: "Нормальные результаты", followups: "На контроле", allScans: "ВСЕ СОХРАНЁННЫЕ СКАНЫ", screening: "сканирование", screenings: "сканирований", search: "Поиск по имени или ID пациента", export: "Экспорт истории", manage: "Управление историей", selected: "выбрано", demoProtected: "демо-записи нельзя удалить", delete: "Удалить выбранные", deleting: "Удаление...", noFound: "Сканы не найдены", tryAgain: "Измените имя или фильтр.", language: "Язык", live: "Реальный", demo: "Демо", ophthalmic: "Офтальмологический скрининг", morning: "Доброе утро", workspaceReady: "Рабочее пространство готово к скринингу.", clinical: "КЛИНИЧЕСКИЙ ИНТЕЛЛЕКТ", start: "Начать скрининг", viewHistory: "Открыть историю", newWorkflow: "НОВЫЙ ПРОЦЕСС", newScreening: "Новый скрининг", patient: "Пациент", continue: "Продолжить", capture: "Снимок", review: "Проверка", settingsTitle: "Настройки", connected: "Подключено", save: "Сохранить", back: "Назад", upload: "Загрузить изображение", run: "Запустить AI-скрининг", analyzing: "Анализируем...", languageSaved: "Язык сохранён на этом устройстве" },
+  kk: { main: "Басты бет", analysis: "Талдау", history: "Тарих", settings: "Баптаулар", archive: "ПАЦИЕНТТЕР МҰРАҒАТЫ", total: "Барлық скринингтер", normal: "Қалыпты нәтижелер", followups: "Бақылау қажет", allScans: "БАРЛЫҚ САҚТАЛҒАН СКАНДАР", screening: "скрининг", screenings: "скрининг", search: "Пациент аты немесе ID бойынша іздеу", export: "Тарихты экспорттау", manage: "Тарихты басқару", selected: "таңдалды", demoProtected: "демо жазбаларын жоюға болмайды", delete: "Таңдалғанды жою", deleting: "Жойылуда...", noFound: "Скан табылмады", tryAgain: "Басқа ат немесе сүзгі таңдаңыз.", language: "Тіл", live: "Нақты", demo: "Демо", ophthalmic: "Офтальмологиялық скрининг", morning: "Қайырлы таң", workspaceReady: "Скрининг жұмыс кеңістігі дайын.", clinical: "КЛИНИКАЛЫҚ ИНТЕЛЛЕКТ", start: "Скринингті бастау", viewHistory: "Тарихты ашу", newWorkflow: "ЖАҢА ПРОЦЕСС", newScreening: "Жаңа скрининг", patient: "Пациент", continue: "Жалғастыру", capture: "Түсірілім", review: "Тексеру", settingsTitle: "Баптаулар", connected: "Қосылған", save: "Сақтау", back: "Артқа", upload: "Суретті жүктеу", run: "AI скринингін іске қосу", analyzing: "Талдау орындалуда...", languageSaved: "Тіл осы құрылғыда сақталды" },
 };
 function useI18n() { return useContext(LanguageContext) ?? { language: "en" as Language, setLanguage: () => undefined, t: (key: string) => key }; }
 function LanguageSwitcher() { const { language, setLanguage, t } = useI18n(); return <label className="language-switcher"><span>{t("language")}</span><select value={language} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={t("language")}><option value="kk">KZ</option><option value="ru">RU</option><option value="en">EN</option></select></label>; }
@@ -76,6 +76,8 @@ type ModelResult = {
 };
 
 const HISTORY_STORAGE_KEY = "veya_scan_history";
+const SUPABASE_REST_URL = "https://cspuysyofmesmyjrcond.supabase.co/rest/v1/scans";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_v7TzPvCO-Z8bn3ePOnm0UA_ZFb3f1mh";
 
 function readSavedScans(): Patient[] {
   try {
@@ -136,15 +138,33 @@ async function persistScan(scan: Patient) {
 
 async function deleteScan(scan: Patient): Promise<boolean> {
   if (scan.source !== "live") return false;
+  const localKey = scan.recordId || scan.id;
   try {
-    const lookup = scan.recordId ? `id=${encodeURIComponent(scan.recordId)}` : `patient_id=${encodeURIComponent(scan.id)}`;
-    const response = await fetch(`/api/scans?${lookup}`, { method: "DELETE" });
-    if (!response.ok) return false;
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId && item.id !== scan.id)));
+    if (scan.recordId) {
+      const response = await fetch(`/api/scans?id=${encodeURIComponent(scan.recordId)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("API delete failed");
+    } else {
+      const response = await fetch(`${SUPABASE_REST_URL}?patient_id=eq.${encodeURIComponent(scan.id)}`, { method: "DELETE", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } });
+      if (!response.ok) throw new Error("Supabase delete failed");
+    }
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => (item.recordId || item.id) !== localKey && item.id !== scan.id)));
     window.dispatchEvent(new Event("veya-history-updated"));
     return true;
   } catch {
-    return false;
+    if (!scan.recordId) {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.id !== scan.id)));
+      window.dispatchEvent(new Event("veya-history-updated"));
+      return true;
+    }
+    try {
+      const response = await fetch(`${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(scan.recordId)}`, { method: "DELETE", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } });
+      if (!response.ok) return false;
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId)));
+      window.dispatchEvent(new Event("veya-history-updated"));
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -232,26 +252,27 @@ function RiskBadge({ risk }: { risk: Patient["risk"] }) {
 }
 
 function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKey) => void }) {
+  const { t } = useI18n();
   return (
     <div className="screen screen--dashboard">
       <header className="topbar">
-        <div className="brand-lockup"><LogoMark /><div><div className="brand-name">VEYA<span>AI</span></div><div className="brand-kicker">Ophthalmic screening</div></div></div>
+        <div className="brand-lockup"><LogoMark /><div><div className="brand-name">VEYA<span>AI</span></div><div className="brand-kicker">{t("ophthalmic")}</div></div></div>
         <button className="avatar-button" aria-label="Open clinician profile"><span>DR</span><span className="avatar-status" /></button>
       </header>
 
       <section className="welcome-row">
-        <div><p className="date-line"><SunMedium size={14} /> Wednesday, 10 September 2026</p><h1>Good morning, <em>Dr. Aida.</em></h1><p className="welcome-detail">Your screening workspace is ready.</p></div>
+        <div><p className="date-line"><SunMedium size={14} /> Wednesday, 10 September 2026</p><h1>{t("morning")}, <em>Dr. Aida.</em></h1><p className="welcome-detail">{t("workspaceReady")}</p></div>
         <StatusPill />
       </section>
 
       <section className="hero-card">
         <div className="hero-card__ambient" />
-        <div className="hero-card__content"><span className="hero-card__eyebrow"><Sparkles size={14} /> CLINICAL INTELLIGENCE</span><h2>Screen earlier.<br /><em>See clearer.</em></h2><p>Veya makes retinal screening accessible in every clinic — with a result in under 30 seconds.</p><button className="button button--light" onClick={onStart}>Start new screening <ArrowUpRight size={17} /></button></div>
+        <div className="hero-card__content"><span className="hero-card__eyebrow"><Sparkles size={14} /> {t("clinical")}</span><h2>Screen earlier.<br /><em>See clearer.</em></h2><p>Veya makes retinal screening accessible in every clinic — with a result in under 30 seconds.</p><button className="button button--light" onClick={onStart}>{t("start")} <ArrowUpRight size={17} /></button></div>
         <div className="hero-eye" aria-hidden="true"><span className="hero-eye__ring hero-eye__ring--outer" /><span className="hero-eye__ring hero-eye__ring--middle" /><span className="hero-eye__ring hero-eye__ring--inner" /><span className="hero-eye__spark" /></div>
         <div className="hero-card__footer"><span><span className="mini-live" /> Model endpoint ready</span><span>~ 30 sec analysis <Zap size={12} /></span></div>
       </section>
 
-      <div className="section-title-row"><div><span className="eyebrow">TODAY AT A GLANCE</span><h2>Practice pulse</h2></div><button className="text-button" onClick={() => onTab("history")}>View history <ChevronRight size={15} /></button></div>
+      <div className="section-title-row"><div><span className="eyebrow">TODAY AT A GLANCE</span><h2>Practice pulse</h2></div><button className="text-button" onClick={() => onTab("history")}>{t("viewHistory")} <ChevronRight size={15} /></button></div>
       <section className="stat-grid">
         <StatCard icon={<Activity size={17} />} tone="mint" value="24" label="Screenings today" detail="+6 from yesterday" trend="+33%" />
         <StatCard icon={<AlertCircle size={17} />} tone="coral" value="3" label="High risk detected" detail="Needs follow-up" />
@@ -278,6 +299,7 @@ function PatientRow({ patient, compact = false, onClick }: { patient: Patient; c
 }
 
 function Analysis({ onBack }: { onBack: () => void }) {
+  const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [eye, setEye] = useState<"OS" | "OD">("OS");
   const [dragActive, setDragActive] = useState(false);
@@ -338,7 +360,7 @@ function Analysis({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="screen screen--analysis">
-      <header className="subpage-header"><button className="icon-button" onClick={onBack} aria-label="Back to dashboard"><ArrowLeft size={19} /></button><div><span className="eyebrow">NEW WORKFLOW</span><h1>New screening</h1></div><span className="step-counter">0{Math.min(step, 4)} <span>/ 04</span></span></header>
+      <header className="subpage-header"><button className="icon-button" onClick={onBack} aria-label={t("back")}><ArrowLeft size={19} /></button><div><span className="eyebrow">{t("newWorkflow")}</span><h1>{t("newScreening")}</h1></div><span className="step-counter">0{Math.min(step, 4)} <span>/ 04</span></span></header>
       <div className="progress-track"><span style={{ width: `${step * 25}%` }} /></div>
 
       {step === 1 && <section className="flow-section flow-section--intro"><div className="flow-icon"><Stethoscope size={25} /></div><span className="eyebrow">STEP 01 · PATIENT</span><h2>Let’s start with<br /><em>the essentials.</em></h2><p className="flow-lead">A few details help Veya contextualize the screening. You can add the clinical note later.</p><div className="form-stack"><label>Patient name<input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Aigerim Sadykova" /></label><div className="form-row"><label>Age<input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} placeholder="Years" /></label><label>Patient ID / IIN<input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="VE-00000" /></label></div><label>Symptoms or clinical notes <span className="optional">Optional</span><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Add a note for the screening report..." rows={3} /></label></div><button className="button button--primary button--full" onClick={() => setStep(2)}>Continue to capture <ChevronRight size={17} /></button></section>}
@@ -457,14 +479,15 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const filtered = useMemo(() => history.filter((patient) => (filter === "All" || patient.risk === filter) && `${patient.name} ${patient.id}`.toLowerCase().includes(query.toLowerCase())), [filter, history, query]);
   const normalCount = history.filter((patient) => patient.risk === "Normal").length;
   const highRiskCount = history.filter((patient) => patient.risk === "High risk").length;
-  const selectedScans = filtered.filter((patient) => patient.recordId && selectedIds.includes(patient.recordId));
-  const toggleSelected = (patient: Patient) => { if (!patient.recordId) return; setSelectedIds((ids) => ids.includes(patient.recordId!) ? ids.filter((id) => id !== patient.recordId) : [...ids, patient.recordId!]); };
+  const selectedScans = filtered.filter((patient) => selectedIds.includes(patient.recordId || patient.id));
+  const toggleSelected = (patient: Patient) => { const key = patient.recordId || patient.id; setSelectedIds((ids) => ids.includes(key) ? ids.filter((id) => id !== key) : [...ids, key]); };
   const removeSelected = async () => { if (!selectedScans.length || !window.confirm(`Delete ${selectedScans.length} selected scan${selectedScans.length === 1 ? "" : "s"}?`)) return; setBusy(true); for (const scan of selectedScans) await deleteScan(scan); setSelectedIds([]); setBusy(false); };
   useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); void syncScans().then((scans) => { if (scans) setSavedScans(scans); }); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">{t("archive")}</span><h1>{t("history")}</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label={t("export")}><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label={t("manage")}><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>{t("total")}</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>{t("normal")}</span></div><div><strong>{highRiskCount}</strong><span>{t("followups")}</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} {t("selected")} · {t("demoProtected")}</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? t("deleting") : t("delete")}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">{t("allScans")}</span><h2>{filtered.length} {filtered.length === 1 ? t("screening") : t("screenings")}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={Boolean(patient.recordId && selectedIds.includes(patient.recordId))} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>{t("noFound")}</strong><span>{t("tryAgain")}</span></div>}</div></div>;
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">{t("archive")}</span><h1>{t("history")}</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label={t("export")}><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label={t("manage")}><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>{t("total")}</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>{t("normal")}</span></div><div><strong>{highRiskCount}</strong><span>{t("followups")}</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{item}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} {t("selected")} · {t("demoProtected")}</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? t("deleting") : t("delete")}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">{t("allScans")}</span><h2>{filtered.length} {filtered.length === 1 ? t("screening") : t("screenings")}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={selectedIds.includes(patient.recordId || patient.id)} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>{t("noFound")}</strong><span>{t("tryAgain")}</span></div>}</div></div>;
 }
 
 function SettingsScreen() {
+  const { t } = useI18n();
   const [endpoint, setEndpoint] = useState(() => localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "http://localhost:8000/predict");
   const [saved, setSaved] = useState(true);
   const [calibrated, setCalibrated] = useState(true);

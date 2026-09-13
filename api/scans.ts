@@ -42,10 +42,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const id = String(req.query.id || "");
     const patientId = String(req.query.patient_id || "");
     if (!id && !patientId) return res.status(400).json({ error: "Scan id or patient_id is required" });
-    const query = supabase.from("scans").delete();
-    const { error } = id ? await query.eq("id", id) : await query.eq("patient_id", patientId);
+    const query = supabase.from("scans").delete().select("id");
+    const { data, error } = id ? await query.eq("id", id) : await query.eq("patient_id", patientId);
     if (error) return res.status(500).json({ error: error.message });
-    return res.status(204).end();
+    return res.status(200).json({ deleted: Array.isArray(data) ? data.length : 0 });
   }
 
   res.setHeader("Allow", "GET, POST, DELETE");
