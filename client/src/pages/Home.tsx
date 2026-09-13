@@ -46,6 +46,12 @@ type TabKey = "dashboard" | "analysis" | "history" | "settings";
 type RiskFilter = "All" | "High risk" | "Normal";
 type Language = "en" | "ru" | "kk";
 const LanguageContext = createContext<{ language: Language; setLanguage: (language: Language) => void; t: (key: string) => string } | null>(null);
+type Profile = { id: string; name: string; email: string; password: string; hospital: string };
+const AUTH_USERS_KEY = "veya_mock_users";
+const ACTIVE_PROFILE_KEY = "veya_active_profile";
+function readProfiles(): Profile[] { try { const value = JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } }
+function activeProfile(): Profile | null { const id = localStorage.getItem(ACTIVE_PROFILE_KEY); return readProfiles().find((profile) => profile.id === id) || null; }
+function profileHistoryKey() { return `${HISTORY_STORAGE_KEY_BASE}_${localStorage.getItem(ACTIVE_PROFILE_KEY) || "guest"}`; }
 const translations: Record<Language, Record<string, string>> = {
   en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo", ophthalmic: "Ophthalmic screening", morning: "Good morning", workspaceReady: "Your screening workspace is ready.", clinical: "CLINICAL INTELLIGENCE", start: "Start new screening", viewHistory: "View history", newWorkflow: "NEW WORKFLOW", newScreening: "New screening", patient: "Patient", continue: "Continue", capture: "Capture", review: "Review", settingsTitle: "Settings", connected: "Connected", save: "Save", back: "Back", upload: "Upload image", run: "Run AI screening", analyzing: "Analyzing signal...", languageSaved: "Language is saved on this device" },
   ru: { main: "Главная", analysis: "Анализ", history: "История", settings: "Настройки", archive: "АРХИВ ПАЦИЕНТОВ", total: "Всего скринингов", normal: "Нормальные результаты", followups: "На контроле", allScans: "ВСЕ СОХРАНЁННЫЕ СКАНЫ", screening: "сканирование", screenings: "сканирований", search: "Поиск по имени или ID пациента", export: "Экспорт истории", manage: "Управление историей", selected: "выбрано", demoProtected: "демо-записи нельзя удалить", delete: "Удалить выбранные", deleting: "Удаление...", noFound: "Сканы не найдены", tryAgain: "Измените имя или фильтр.", language: "Язык", live: "Реальный", demo: "Демо", ophthalmic: "Офтальмологический скрининг", morning: "Доброе утро", workspaceReady: "Рабочее пространство готово к скринингу.", clinical: "КЛИНИЧЕСКИЙ ИНТЕЛЛЕКТ", start: "Начать скрининг", viewHistory: "Открыть историю", newWorkflow: "НОВЫЙ ПРОЦЕСС", newScreening: "Новый скрининг", patient: "Пациент", continue: "Продолжить", capture: "Снимок", review: "Проверка", settingsTitle: "Настройки", connected: "Подключено", save: "Сохранить", back: "Назад", upload: "Загрузить изображение", run: "Запустить AI-скрининг", analyzing: "Анализируем...", languageSaved: "Язык сохранён на этом устройстве" },
@@ -100,13 +106,13 @@ type ModelResult = {
   };
 };
 
-const HISTORY_STORAGE_KEY = "veya_scan_history";
+const HISTORY_STORAGE_KEY_BASE = "veya_scan_history";
 const SUPABASE_REST_URL = "https://cspuysyofmesmyjrcond.supabase.co/rest/v1/scans";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_v7TzPvCO-Z8bn3ePOnm0UA_ZFb3f1mh";
 
 function readSavedScans(): Patient[] {
   try {
-    const saved = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+    const saved = JSON.parse(localStorage.getItem(profileHistoryKey()) || "[]");
     return Array.isArray(saved) ? saved : [];
   } catch {
     return [];
@@ -115,7 +121,7 @@ function readSavedScans(): Patient[] {
 
 function saveScan(scan: Patient) {
   const next = [scan, ...readSavedScans().filter((item) => item.id !== scan.id)].slice(0, 100);
-  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(next));
+  localStorage.setItem(profileHistoryKey(), JSON.stringify(next));
   window.dispatchEvent(new Event("veya-history-updated"));
 }
 
@@ -143,7 +149,7 @@ async function syncScans(): Promise<Patient[] | null> {
     const data = await response.json();
     if (!Array.isArray(data)) return null;
     const scans = data.map((item) => fromApiScan(item));
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(scans));
+    localStorage.setItem(profileHistoryKey(), JSON.stringify(scans));
     window.dispatchEvent(new Event("veya-history-updated"));
     return scans;
   } catch {
@@ -153,12 +159,6 @@ async function syncScans(): Promise<Patient[] | null> {
 
 async function persistScan(scan: Patient) {
   saveScan(scan);
-  try {
-    const response = await fetch("/api/scans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(scan) });
-    if (response.ok) await syncScans();
-  } catch {
-    // Keep the local fallback when the API is unavailable.
-  }
 }
 
 async function deleteScan(scan: Patient): Promise<boolean> {
@@ -172,19 +172,19 @@ async function deleteScan(scan: Patient): Promise<boolean> {
       const response = await fetch(`${SUPABASE_REST_URL}?patient_id=eq.${encodeURIComponent(scan.id)}`, { method: "DELETE", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } });
       if (!response.ok) throw new Error("Supabase delete failed");
     }
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => (item.recordId || item.id) !== localKey && item.id !== scan.id)));
+    localStorage.setItem(profileHistoryKey(), JSON.stringify(readSavedScans().filter((item) => (item.recordId || item.id) !== localKey && item.id !== scan.id)));
     window.dispatchEvent(new Event("veya-history-updated"));
     return true;
   } catch {
     if (!scan.recordId) {
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.id !== scan.id)));
+      localStorage.setItem(profileHistoryKey(), JSON.stringify(readSavedScans().filter((item) => item.id !== scan.id)));
       window.dispatchEvent(new Event("veya-history-updated"));
       return true;
     }
     try {
       const response = await fetch(`${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(scan.recordId)}`, { method: "DELETE", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } });
       if (!response.ok) return false;
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId)));
+      localStorage.setItem(profileHistoryKey(), JSON.stringify(readSavedScans().filter((item) => item.recordId !== scan.recordId)));
       window.dispatchEvent(new Event("veya-history-updated"));
       return true;
     } catch {
@@ -282,6 +282,7 @@ function formatToday(language: Language) {
 }
 function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKey) => void }) {
   const { language, t } = useI18n();
+  const profile = activeProfile();
   return (
     <div className="screen screen--dashboard">
       <header className="topbar">
@@ -290,7 +291,7 @@ function Dashboard({ onStart, onTab }: { onStart: () => void; onTab: (tab: TabKe
       </header>
 
       <section className="welcome-row">
-        <div><p className="date-line"><SunMedium size={14} /> {formatToday(language)}</p><h1>{t("morning")}, <em>Dr. Aida.</em></h1><p className="welcome-detail">{t("workspaceReady")}</p></div>
+        <div><p className="date-line"><SunMedium size={14} /> {formatToday(language)}</p><h1>{t("morning")}, <em>{profile?.name || "Dr. Aida"}</em></h1><p className="welcome-detail">{profile?.hospital || t("workspaceReady")}</p></div>
         <StatusPill />
       </section>
 
@@ -513,17 +514,18 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
   const selectedScans = filtered.filter((patient) => selectedIds.includes(patient.recordId || patient.id));
   const toggleSelected = (patient: Patient) => { const key = patient.recordId || patient.id; setSelectedIds((ids) => ids.includes(key) ? ids.filter((id) => id !== key) : [...ids, key]); };
   const removeSelected = async () => { if (!selectedScans.length || !window.confirm(`Delete ${selectedScans.length} selected scan${selectedScans.length === 1 ? "" : "s"}?`)) return; setBusy(true); for (const scan of selectedScans) await deleteScan(scan); setSelectedIds([]); setBusy(false); };
-  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); void syncScans().then((scans) => { if (scans) setSavedScans(scans); }); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
+  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); window.addEventListener("veya-history-updated", refresh); return () => window.removeEventListener("veya-history-updated", refresh); }, []);
   return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">{t("archive")}</span><h1>{t("history")}</h1></div></div><div className="history-actions"><button className="icon-button" onClick={() => exportScansCsv(history)} aria-label={t("export")}><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label={t("manage")}><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>{t("total")}</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>{t("normal")}</span></div><div><strong>{highRiskCount}</strong><span>{t("followups")}</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} />{query && <button onClick={() => setQuery("")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{filterLabel(item)}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} {t("selected")} · {t("demoProtected")}</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={removeSelected}><Trash2 size={14} />{busy ? t("deleting") : t("delete")}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">{t("allScans")}</span><h2>{filtered.length} {filtered.length === 1 ? t("screening") : t("screenings")}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${patient.recordId || patient.id}`}>{manageMode && <input type="checkbox" checked={selectedIds.includes(patient.recordId || patient.id)} onChange={() => toggleSelected(patient)} aria-label={`Select ${patient.name}`} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>{t("noFound")}</strong><span>{t("tryAgain")}</span></div>}</div></div>;
 }
 
 function SettingsScreen() {
   const { t } = useI18n();
+  const profile = activeProfile();
   const [endpoint, setEndpoint] = useState(() => localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "http://localhost:8000/predict");
   const [saved, setSaved] = useState(true);
   const [calibrated, setCalibrated] = useState(true);
   const [autoUpload, setAutoUpload] = useState(false);
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><Settings2 size={18} /></AppIcon><div><span className="eyebrow">{t("workspace")}</span><h1>{t("settingsTitle")}</h1></div></div><button className="icon-button"><CircleHelp size={18} /></button></header><section className="settings-hero"><div className="settings-hero__orb"><PlugZap size={21} /></div><div><span className="eyebrow">{t("deviceStatus")}</span><h2>{t("inSync")}</h2><p>{t("captureReady")}</p></div><StatusPill compact /></section><div className="settings-group"><div className="group-label"><span>{t("aiBackend")}</span><span className="demo-tag">{t("modelReady")}</span></div><div className="settings-card"><label className="setting-field"><span>{t("endpoint")}</span><div className="setting-input"><Wifi size={15} /><input value={endpoint} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={() => { localStorage.setItem("veya_api_endpoint", endpoint); setSaved(true); }} /></div><small>{t("endpointHelp")}</small></label><div className="setting-row"><div><strong>{t("liveScreening")}</strong><span>{t("liveHelp")}</span></div><span className="switch switch--on"><i /></span></div></div></div><div className="settings-group"><div className="group-label"><span>{t("clinicProfile")}</span><button className="text-button">{t("edit")} <ArrowUpRight size={14} /></button></div><div className="settings-card settings-card--profile"><div className="clinic-avatar">BG</div><div><strong>BIO&GEN Clinic</strong><span>Almaty, Kazakhstan</span></div><ChevronRight size={17} /></div></div><div className="settings-group"><div className="group-label"><span>{t("captureSystem")}</span><span className="calibration-status"><Check size={12} /> {t("calibrated")}</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="blue"><Camera size={16} /></AppIcon><div><strong>{t("optical")}</strong><span>{t("standardField")}</span></div></div><ChevronRight size={16} /></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="mint"><Target size={16} /></AppIcon><div><strong>{t("cameraCalibration")}</strong><span>{t("lastChecked")}</span></div></div><button className={`toggle-button${calibrated ? " is-active" : ""}`} onClick={() => setCalibrated(!calibrated)}>{calibrated ? t("ready") : t("check")}</button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="amber"><CloudUpload size={16} /></AppIcon><div><strong>{t("autoUpload")}</strong><span>{t("autoUploadHelp")}</span></div></div><button className={`toggle-switch${autoUpload ? " is-active" : ""}`} onClick={() => setAutoUpload(!autoUpload)} aria-label={t("autoUpload")}><i /></button></div></div></div><div className="settings-footer"><ShieldCheck size={15} /> {t("historyStored")}</div>{!saved && <span className="save-toast"><Check size={14} />{t("save")}</span>}</div>;
+  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><Settings2 size={18} /></AppIcon><div><span className="eyebrow">{t("workspace")}</span><h1>{t("settingsTitle")}</h1></div></div><button className="icon-button"><CircleHelp size={18} /></button></header><section className="settings-hero"><div className="settings-hero__orb"><PlugZap size={21} /></div><div><span className="eyebrow">{t("deviceStatus")}</span><h2>{t("inSync")}</h2><p>{t("captureReady")}</p></div><StatusPill compact /></section><div className="settings-group"><div className="group-label"><span>{t("aiBackend")}</span><span className="demo-tag">{t("modelReady")}</span></div><div className="settings-card"><label className="setting-field"><span>{t("endpoint")}</span><div className="setting-input"><Wifi size={15} /><input value={endpoint} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={() => { localStorage.setItem("veya_api_endpoint", endpoint); setSaved(true); }} /></div><small>{t("endpointHelp")}</small></label><div className="setting-row"><div><strong>{t("liveScreening")}</strong><span>{t("liveHelp")}</span></div><span className="switch switch--on"><i /></span></div></div></div><div className="settings-group"><div className="group-label"><span>{t("clinicProfile")}</span><button className="text-button">{t("edit")} <ArrowUpRight size={14} /></button></div><div className="settings-card settings-card--profile"><div className="clinic-avatar">{(profile?.name || "Dr").slice(0, 2).toUpperCase()}</div><div><strong>{profile?.hospital || "BIO&GEN Clinic"}</strong><span>{profile?.name || "Almaty, Kazakhstan"}</span></div><ChevronRight size={17} /></div></div><div className="settings-group"><div className="group-label"><span>{t("captureSystem")}</span><span className="calibration-status"><Check size={12} /> {t("calibrated")}</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="blue"><Camera size={16} /></AppIcon><div><strong>{t("optical")}</strong><span>{t("standardField")}</span></div></div><ChevronRight size={16} /></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="mint"><Target size={16} /></AppIcon><div><strong>{t("cameraCalibration")}</strong><span>{t("lastChecked")}</span></div></div><button className={`toggle-button${calibrated ? " is-active" : ""}`} onClick={() => setCalibrated(!calibrated)}>{calibrated ? t("ready") : t("check")}</button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="amber"><CloudUpload size={16} /></AppIcon><div><strong>{t("autoUpload")}</strong><span>{t("autoUploadHelp")}</span></div></div><button className={`toggle-switch${autoUpload ? " is-active" : ""}`} onClick={() => setAutoUpload(!autoUpload)} aria-label={t("autoUpload")}><i /></button></div></div></div><div className="settings-footer"><ShieldCheck size={15} /> {t("historyStored")}<button className="text-button" onClick={() => { localStorage.removeItem(ACTIVE_PROFILE_KEY); window.location.reload(); }}>Log out</button></div>{!saved && <span className="save-toast"><Check size={14} />{t("save")}</span>}</div>;
 }
 
 function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => void }) {
@@ -531,12 +533,24 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
   return <div className="drawer-backdrop" onClick={onClose}><aside className="patient-drawer" onClick={(e) => e.stopPropagation()}><div className="drawer-handle" /><div className="drawer-top"><span className="eyebrow">{t("screeningDetail")}</span><button className="icon-button" onClick={onClose} aria-label={t("back")}><X size={18} /></button></div><div className="drawer-profile"><FundusThumb variant={patient.thumb} /><div><h2>{patient.name}</h2><span>{patient.id} · {patient.date}, {patient.time}</span></div></div><div className="drawer-status"><div><span className="eyebrow">{t("triage")}</span><strong>{patient.risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</strong></div><RiskBadge risk={patient.risk} /></div><div className="drawer-section"><span className="eyebrow">{t("captureDetails")}</span><div className="detail-grid"><div><span>{t("eye")}</span><strong>{patient.eye} · {patient.eye === "OS" ? t("left") : t("right")}</strong></div><div><span>{t("confidence")}</span><strong>{patient.score}</strong></div><div><span>{t("latency")}</span><strong>28.4 sec</strong></div><div><span>{t("device")}</span><strong>visoScope 2.0</strong></div></div></div><div className="drawer-section"><span className="eyebrow">{t("recommendation")}</span><div className="recommendation recommendation--drawer"><AppIcon tone="mint"><Stethoscope size={16} /></AppIcon><div><strong>{patient.risk === "High risk" ? t("followup") : t("routine")}</strong><p>{t("reviewContext")}</p></div></div></div><button className="button button--primary button--full"><Download size={16} />{t("exportReport")}</button></aside></div>;
 }
 
+function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: Profile) => void }) {
+  const { language } = useI18n();
+  const ru = language === "ru"; const kk = language === "kk";
+  const text = { title: ru ? "Вход в VEYA" : kk ? "VEYA жүйесіне кіру" : "Sign in to VEYA", subtitle: ru ? "Ваши скрининги будут сохранены в личном профиле." : kk ? "Скринингтеріңіз жеке профиліңізде сақталады." : "Your screenings are saved in your private profile.", login: ru ? "Войти" : kk ? "Кіру" : "Sign in", register: ru ? "Создать профиль" : kk ? "Профиль жасау" : "Create profile", name: ru ? "Имя врача" : kk ? "Дәрігер аты" : "Doctor name", hospital: ru ? "Клиника или больница" : kk ? "Клиника немесе аурухана" : "Clinic or hospital", email: "Email", password: ru ? "Пароль" : kk ? "Құпиясөз" : "Password", submit: ru ? "Продолжить" : kk ? "Жалғастыру" : "Continue" };
+  const [registerMode, setRegisterMode] = useState(false); const [form, setForm] = useState({ name: "", hospital: "", email: "", password: "" }); const [error, setError] = useState("");
+  const submit = (event: React.FormEvent) => { event.preventDefault(); const users = readProfiles(); const email = form.email.trim().toLowerCase(); if (!email || !form.password || (registerMode && (!form.name.trim() || !form.hospital.trim()))) { setError(ru ? "Заполните все обязательные поля." : kk ? "Барлық міндетті өрістерді толтырыңыз." : "Fill in all required fields."); return; } if (registerMode) { if (users.some((user) => user.email === email)) { setError(ru ? "Этот email уже зарегистрирован." : kk ? "Бұл email бұрын тіркелген." : "This email is already registered."); return; } const profile = { id: crypto.randomUUID(), name: form.name.trim(), hospital: form.hospital.trim(), email, password: form.password }; localStorage.setItem(AUTH_USERS_KEY, JSON.stringify([...users, profile])); localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id); onAuthenticated(profile); } else { const profile = users.find((user) => user.email === email && user.password === form.password); if (!profile) { setError(ru ? "Неверный email или пароль." : kk ? "Email немесе құпиясөз қате." : "Incorrect email or password."); return; } localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id); onAuthenticated(profile); } };
+  return <div className="auth-screen"><div className="auth-card"><div className="auth-brand">VEYA<span>AI</span></div><span className="eyebrow">{text.title}</span><h1>{registerMode ? text.register : text.title}</h1><p>{text.subtitle}</p><form onSubmit={submit}>{registerMode && <><label>{text.name}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label>{text.hospital}<input value={form.hospital} onChange={(event) => setForm({ ...form, hospital: event.target.value })} /></label></>}<label>{text.email}<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label><label>{text.password}<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary button--full" type="submit">{text.submit}</button></form><button className="button button--ghost button--full" onClick={() => { setRegisterMode(!registerMode); setError(""); }}>{registerMode ? text.login : text.register}</button><small>Demo authentication: данные хранятся в этом браузере.</small></div></div>;
+}
+
+
 export default function Home() {
+  const [profile, setProfile] = useState<Profile | null>(() => activeProfile());
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem("veya_language") as Language) || "en");
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [drawerPatient, setDrawerPatient] = useState<Patient | null>(null);
   const t = (key: string) => clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
   const navigate = (tab: TabKey) => setActiveTab(tab);
   const changeLanguage = (next: Language) => { setLanguage(next); localStorage.setItem("veya_language", next); };
-  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, label, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key === "dashboard" ? "main" : key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
+  if (!profile) return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><AuthScreen onAuthenticated={setProfile} /></LanguageContext.Provider>;
+  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard onStart={() => setActiveTab("analysis")} onTab={navigate} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} />}{activeTab === "history" && <HistoryScreen onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key === "dashboard" ? "main" : key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={() => setDrawerPatient(null)} />}</div></LanguageContext.Provider>;
 }
