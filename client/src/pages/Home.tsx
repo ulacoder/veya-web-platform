@@ -69,9 +69,9 @@ const resultTranslations: Record<Language, Record<string, string>> = {
   kk: { screeningComplete: "СКРИНИНГ АЯҚТАЛДЫ", clinicalSignal: "Клиникалық|сигналды тексеріңіз.", inferenceDone: "Нақты модель талдауы аяқталды.", triage: "ТРИАЖ МӘРТЕБЕСІ", noResult: "Нәтиже жоқ", signalBreakdown: "СИГНАЛ ТАЛДАУЫ", modelResults: "AI моделінің нәтижелері", liveModel: "НАҒЫЗ МОДЕЛЬ", rawResponse: "AI жауабы (JSON)", clinicalAction: "КЛИНИКАЛЫҚ ӘРЕКЕТ", referDilated: "Кеңейтілген тексеруге жіберу", confirmFollowup: "Нәтижені клиникалық тексерумен растау және бақылауды тіркеу қажет.", exportReport: "PDF есебін экспорттау", another: "Жаңа скрининг бастау", allFilter: "Барлығы", highRiskFilter: "Жоғары қауіп", normalFilter: "Қалыпты", negative: "Теріс", positive: "ОҢ НӘТИЖЕ" },
 };
 const clinicalTranslations: Record<Language, Record<string, string>> = {
-  en: { readySignal: "Ready for|the signal.", noDr: "Eyes healthy, all clear", healthyRetina: "Eye healthy, retina normal (confidence {confidence}%)", drName: "Diabetic retinopathy", drProbability: "{value}% disease probability (Detected: Grade {grade})", grade: "Grade", glaucomaName: "Glaucoma", cataractName: "Cataract", probability: "{value}% probability", diseasePositive: "POSITIVE", diseaseNegative: "Negative", patientInference: "Real model inference completed.", fundusImage: "FUNDUS IMAGE", uploadedPreview: "Uploaded fundus preview", inferenceTitle: "VEYA AI inference", gradeMild: "Grade {grade}: mild changes, monitoring recommended.", gradeModerate: "Grade {grade}: moderate changes, follow-up recommended.", gradeSevere: "Grade {grade}: severe changes, urgent referral recommended." },
-  ru: { readySignal: "Готовы к|анализу.", noDr: "Глаза здоровы, всё в порядке", healthyRetina: "Глаз здоров, сетчатка в норме (уверенность {confidence}%)", drName: "Диабетическая ретинопатия", drProbability: "Вероятность заболевания {value}% (степень: {grade})", grade: "Степень", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Вероятность {value}%", diseasePositive: "ПОЛОЖИТЕЛЬНО", diseaseNegative: "Отрицательно", patientInference: "Работа реальной модели завершена.", fundusImage: "СНИМОК ГЛАЗНОГО ДНА", uploadedPreview: "Предпросмотр снимка", inferenceTitle: "AI-анализ VEYA", gradeMild: "Степень {grade}: лёгкие изменения, рекомендуется наблюдение.", gradeModerate: "Степень {grade}: умеренные изменения, рекомендуется контроль.", gradeSevere: "Степень {grade}: выраженные изменения, требуется срочное направление." },
-  kk: { readySignal: "Сигнал|дайын.", noDr: "Көз сау, бәрі жақсы", healthyRetina: "Көз сау, торлы қабық қалыпты (сенімділік {confidence}%)", drName: "Диабеттік ретинопатия", drProbability: "Ауру ықтималдығы {value}% (дәрежесі: {grade})", grade: "Дәреже", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Ықтималдық {value}%", diseasePositive: "ОҢ НӘТИЖЕ", diseaseNegative: "Теріс", patientInference: "Нақты модель талдауы аяқталды.", fundusImage: "КӨЗ ТҮБІНІҢ СУРЕТІ", uploadedPreview: "Сурет алдын ала көрінісі", inferenceTitle: "VEYA AI талдауы", gradeMild: "{grade}-дәреже: жеңіл өзгерістер, бақылау қажет.", gradeModerate: "{grade}-дәреже: орташа өзгерістер, қайта тексеру қажет.", gradeSevere: "{grade}-дәреже: ауыр өзгерістер, шұғыл жолдау қажет." },
+  en: { readySignal: "Ready for|the signal.", noDr: "Eyes healthy, all clear", healthyRetina: "Eye healthy, retina normal (confidence {confidence}%)", drName: "Diabetic retinopathy", drProbability: "{value}% disease probability (Detected: Grade {grade})", grade: "Grade", glaucomaName: "Glaucoma", cataractName: "Cataract", probability: "{value}% probability", diseasePositive: "POSITIVE", diseaseNegative: "Negative", patientInference: "Real model inference completed.", fundusImage: "FUNDUS IMAGE", uploadedPreview: "Uploaded fundus preview", inferenceTitle: "VEYA AI inference", gradeMild: "Grade {grade}: changes detected; urgent ophthalmology examination recommended.", gradeModerate: "Grade {grade}: significant changes; urgent ophthalmology examination required.", gradeSevere: "Grade {grade}: severe changes; urgent referral required.", drDetected: "Diabetic retinopathy detected", glaucomaDetected: "Glaucoma detected", cataractDetected: "Cataract detected", glaucomaDetail: "Glaucoma probability: {value}%. Ophthalmology examination and intraocular pressure measurement are recommended.", cataractDetail: "Cataract probability: {value}%. Ophthalmology examination is recommended.", multipleDetected: "Multiple conditions detected", detectedConditions: "Detected", comprehensiveExam: "Comprehensive ophthalmology examination is urgently recommended." },
+  ru: { readySignal: "Готовы к|анализу.", noDr: "Глаза здоровы, всё в порядке", healthyRetina: "Глаз здоров, сетчатка в норме (уверенность {confidence}%)", drName: "Диабетическая ретинопатия", drProbability: "Вероятность заболевания {value}% (степень: {grade})", grade: "Степень", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Вероятность {value}%", diseasePositive: "ПОЛОЖИТЕЛЬНО", diseaseNegative: "Отрицательно", patientInference: "Работа реальной модели завершена.", fundusImage: "СНИМОК ГЛАЗНОГО ДНА", uploadedPreview: "Предпросмотр снимка", inferenceTitle: "AI-анализ VEYA", gradeMild: "Степень {grade}: выявлены изменения, требуется срочный осмотр офтальмолога.", gradeModerate: "Степень {grade}: выявлены выраженные изменения, требуется срочный осмотр офтальмолога.", gradeSevere: "Степень {grade}: тяжёлые изменения, необходимо срочно обратиться к офтальмологу.", drDetected: "Выявлена диабетическая ретинопатия", glaucomaDetected: "Выявлены признаки глаукомы", cataractDetected: "Выявлены признаки катаракты", glaucomaDetail: "Вероятность глаукомы: {value}%. Рекомендуется осмотр офтальмолога и измерение внутриглазного давления.", cataractDetail: "Вероятность катаракты: {value}%. Рекомендуется осмотр офтальмолога.", multipleDetected: "Выявлено несколько состояний", detectedConditions: "Выявлено", comprehensiveExam: "Необходим срочный комплексный осмотр офтальмолога." },
+  kk: { readySignal: "Сигнал|дайын.", noDr: "Көз сау, бәрі жақсы", healthyRetina: "Көз сау, торлы қабық қалыпты (сенімділік {confidence}%)", drName: "Диабеттік ретинопатия", drProbability: "Ауру ықтималдығы {value}% (дәрежесі: {grade})", grade: "Дәреже", glaucomaName: "Глаукома", cataractName: "Катаракта", probability: "Ықтималдық {value}%", diseasePositive: "ОҢ НӘТИЖЕ", diseaseNegative: "Теріс", patientInference: "Нақты модель талдауы аяқталды.", fundusImage: "КӨЗ ТҮБІНІҢ СУРЕТІ", uploadedPreview: "Сурет алдын ала көрінісі", inferenceTitle: "VEYA AI талдауы", gradeMild: "{grade}-дәреже: өзгерістер анықталды, офтальмологтың шұғыл тексеруі қажет.", gradeModerate: "{grade}-дәреже: айқын өзгерістер анықталды, офтальмологқа шұғыл қаралу қажет.", gradeSevere: "{grade}-дәреже: ауыр өзгерістер, офтальмологқа шұғыл жолдану қажет.", drDetected: "Диабеттік ретинопатия анықталды", glaucomaDetected: "Глаукома белгілері анықталды", cataractDetected: "Катаракта белгілері анықталды", glaucomaDetail: "Глаукома ықтималдығы: {value}%. Офтальмолог тексеруі және көз ішілік қысымды өлшеу қажет.", cataractDetail: "Катаракта ықтималдығы: {value}%. Офтальмолог тексеруі қажет.", multipleDetected: "Бірнеше жағдай анықталды", detectedConditions: "Анықталғаны", comprehensiveExam: "Офтальмологтың шұғыл кешенді тексеруі қажет." },
 };
 const dashboardTranslations: Record<Language, Record<string, string>> = {
   en: { screenEarlier: "Screen earlier.", seeClearer: "See clearer.", heroDescription: "Veya makes retinal screening accessible in every clinic — with a result in under 30 seconds.", modelReadyFooter: "Model endpoint ready", analysisTime: "~ 30 sec analysis", today: "TODAY AT A GLANCE", practicePulse: "Practice pulse", screeningsToday: "Screenings today", fromYesterday: "+6 from yesterday", highRiskDetected: "High risk detected", needsFollowup: "Needs follow-up", avgLatency: "Avg AI latency", last30: "Last 30 screenings", whatSees: "WHAT VEYA SEES", signalsDecision: "Three signals. One clearer decision.", signalsDescription: "Retinal patterns are screened for early signs of diabetic retinopathy, glaucoma, and cataract.", retinopathy: "Retinopathy", glaucoma: "Glaucoma", cataract: "Cataract", recentActivity: "RECENT ACTIVITY", latestScreenings: "Latest screenings" },
@@ -436,48 +436,48 @@ function Results({ onRestart, patientName, eye, modelResult }: { onRestart: () =
       statusTitle = t("noDr");
       statusDetail = t("healthyRetina").replace("{grade}", String(grade)).replace("{confidence}", String(Math.round((drProbabilities[0] ?? 0) * 100)));
     } else if (grade === 1) {
-      statusTitle = "Mild DR detected";
+      statusTitle = t("drDetected");
       statusDetail = t("gradeMild").replace("{grade}", String(grade));
-      detectedConditions.push("DR Grade 1");
+      detectedConditions.push(t("drDetected"));
     } else if (grade === 2) {
-      statusTitle = "Moderate DR detected";
+      statusTitle = t("drDetected");
       statusDetail = t("gradeModerate").replace("{grade}", String(grade));
-      detectedConditions.push("DR Grade 2");
+      detectedConditions.push(t("drDetected"));
     } else if (grade >= 3) {
-      statusTitle = "Severe DR detected";
+      statusTitle = t("drDetected");
       statusDetail = t("gradeSevere").replace("{grade}", String(grade));
-      detectedConditions.push(`DR Grade ${grade}`);
+      detectedConditions.push(t("drDetected"));
     }
   }
 
   if (result?.glaucoma?.positive) {
-    detectedConditions.push("Glaucoma");
+    detectedConditions.push(t("glaucomaDetected"));
     if (detectedConditions.length === 1) {
-      statusTitle = "Glaucoma detected";
-      statusDetail = `Glaucoma risk: ${glaucomaValue}% probability. Optic nerve assessment and IOP measurement recommended.`;
+      statusTitle = t("glaucomaDetected");
+      statusDetail = t("glaucomaDetail").replace("{value}", String(glaucomaValue));
     } else {
-      statusDetail += ` Glaucoma: ${glaucomaValue}% probability.`;
+      statusDetail += ` ${t("glaucomaDetail").replace("{value}", String(glaucomaValue))}`;
     }
   }
 
   if (result?.cataract?.positive) {
-    detectedConditions.push("Cataract");
+    detectedConditions.push(t("cataractDetected"));
     if (detectedConditions.length === 1) {
-      statusTitle = "Cataract detected";
-      statusDetail = `Cataract probability: ${cataractValue}%. Lens opacity affecting fundus clarity. Consider referral for cataract evaluation.`;
+      statusTitle = t("cataractDetected");
+      statusDetail = t("cataractDetail").replace("{value}", String(cataractValue));
     } else {
-      statusDetail += ` Cataract: ${cataractValue}% probability.`;
+      statusDetail += ` ${t("cataractDetail").replace("{value}", String(cataractValue))}`;
     }
   }
 
   // Update title for multiple conditions
   if (detectedConditions.length > 1) {
-    statusTitle = `Multiple conditions detected`;
-    statusDetail = `Detected: ${detectedConditions.join(", ")}. Comprehensive ophthalmologic examination recommended.`;
+    statusTitle = t("multipleDetected");
+    statusDetail = `${t("detectedConditions")}: ${detectedConditions.join(", ")}. ${t("comprehensiveExam")}`;
   }
 
   // Show all DR probabilities for transparency
-  const drProbs = drProbabilities.map((p, i) => `Grade ${i}: ${Math.round(p * 100)}%`).join(', ');
+  const drProbs = drProbabilities.map((p, i) => `${t("grade")} ${i}: ${Math.round(p * 100)}%`).join(', ');
 
   const metrics = [
     {
