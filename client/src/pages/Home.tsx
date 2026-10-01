@@ -364,7 +364,7 @@ function Analysis({ onBack }: { onBack: () => void }) {
     setScanning(true);
     setScanError("");
     try {
-      const endpoint = localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "http://localhost:8000/predict";
+      const endpoint = localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "https://veya-inference.onrender.com/predict";
       const payload = new FormData();
       payload.append("file", uploadedFile);
       const response = await fetch(endpoint, { method: "POST", body: payload });
@@ -529,7 +529,7 @@ function HistoryScreen({ onSelect }: { onSelect: (patient: Patient) => void }) {
 function SettingsScreen() {
   const { t } = useI18n();
   const profile = activeProfile();
-  const [endpoint, setEndpoint] = useState(() => localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "http://localhost:8000/predict");
+  const [endpoint, setEndpoint] = useState(() => localStorage.getItem("veya_api_endpoint") || import.meta.env.VITE_INFERENCE_API_URL || "https://veya-inference.onrender.com/predict");
   const [saved, setSaved] = useState(true);
   const [calibrated, setCalibrated] = useState(true);
   const [autoUpload, setAutoUpload] = useState(false);
