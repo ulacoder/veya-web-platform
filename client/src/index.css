@@ -481,7 +481,7 @@ img, svg { display: block; }
   .hero { grid-template-columns: 1fr 300px; min-height: 300px; }
   .hero__copy { padding: 34px 34px 30px; }
   .hero h2 { font-size: 38px; }
-  .hero__scope { position: relative; right: auto; bottom: auto; align-self: center; justify-self: center; width: 210px; height: 210px; opacity: 1; margin-right: 20px; }
+  .hero__scope { position: relative; top: auto; right: auto; bottom: auto; align-self: center; justify-self: center; width: 210px; height: 210px; opacity: 1; margin-right: 20px; }
   .kpi { padding: 20px 22px; }
   .kpi__value { font-size: 36px; }
   .kpis--compact .kpi { padding: 16px 20px; }
