@@ -442,6 +442,7 @@ img, svg { display: block; }
 .facts div { padding: 12px 14px; }
 .facts div:nth-child(even) { border-left: 1px solid var(--line); }
 .facts div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+.facts div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .facts dt { color: var(--ink-3); font-size: 13px; }
 .facts dd { margin-top: 2px; font-size: 15.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sheet-section h3 { margin-bottom: 6px; font-size: 15px; font-weight: 650; }
