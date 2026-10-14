@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { interpret, isHighRisk, type InferenceResult, type ModelResult } from "@/lib/clinical";
 import { inspectImage, validateImageFile, type ImageCheck } from "@/lib/image";
 import { downloadReport } from "@/lib/report";
+import { FundusArt } from "@/components/FundusArt";
 
 type TabKey = "dashboard" | "analysis" | "history" | "settings" | "profile";
 type RiskFilter = "All" | "High risk" | "Normal";
@@ -275,44 +276,6 @@ function LogoMark() {
   return <img className="logo-mark" src="/brand/veya-logo-128.png" alt="" width={40} height={40} decoding="async" />;
 }
 
-/** Stylised view of the retina as seen through the ophthalmoscope — the app's signature visual. */
-function FundusArt({ className }: { className?: string }) {
-  const id = useId().replace(/:/g, "");
-  return (
-    <svg className={className} viewBox="0 0 200 200" aria-hidden="true">
-      <defs>
-        <radialGradient id={`r${id}`} cx="58%" cy="47%" r="62%">
-          <stop offset="0" stopColor="#f6b26b" />
-          <stop offset=".28" stopColor="#df7638" />
-          <stop offset=".66" stopColor="#b2441d" />
-          <stop offset="1" stopColor="#5e1d0e" />
-        </radialGradient>
-        <radialGradient id={`d${id}`}>
-          <stop offset="0" stopColor="#fff6dc" />
-          <stop offset=".5" stopColor="#ffd795" />
-          <stop offset="1" stopColor="#f0a258" />
-        </radialGradient>
-        <clipPath id={`c${id}`}><circle cx="100" cy="100" r="100" /></clipPath>
-      </defs>
-      <g clipPath={`url(#c${id})`}>
-        <circle cx="100" cy="100" r="100" fill={`url(#r${id})`} />
-        <circle cx="80" cy="104" r="16" fill="#6b2412" opacity=".28" />
-        <g fill="none" stroke="#7a1f0e" strokeLinecap="round" opacity=".62">
-          <path d="M131 90C110 60 72 48 22 58" strokeWidth="3" />
-          <path d="M129 87C118 50 98 26 64 12" strokeWidth="2.2" />
-          <path d="M131 104C110 136 72 150 24 142" strokeWidth="3" />
-          <path d="M129 107C120 150 100 172 66 188" strokeWidth="2.2" />
-          <path d="M136 92C158 72 176 60 198 54" strokeWidth="1.8" />
-          <path d="M137 101C158 120 178 132 198 142" strokeWidth="1.8" />
-          <path d="M92 60C84 74 82 86 86 96" strokeWidth="1.2" />
-          <path d="M90 146C82 132 80 120 84 110" strokeWidth="1.2" />
-        </g>
-        <circle cx="133" cy="96" r="15" fill={`url(#d${id})`} />
-      </g>
-    </svg>
-  );
-}
-
 function LanguageSwitcher() {
   const { language, setLanguage, t } = useI18n();
   const options: { value: Language; label: string }[] = [{ value: "kk", label: "KZ" }, { value: "ru", label: "RU" }, { value: "en", label: "EN" }];
@@ -324,7 +287,7 @@ function LanguageSwitcher() {
 }
 
 function FundusThumb({ variant, image }: { variant: string; image?: string }) {
-  return <span className={`thumb thumb--${variant}`} aria-hidden="true">{image ? <img src={image} alt="" /> : <FundusArt />}</span>;
+  return <span className={`thumb thumb--${variant}`} aria-hidden="true">{image ? <img src={image} alt="" /> : <FundusArt detail={false} />}</span>;
 }
 
 function RiskBadge({ risk }: { risk: Patient["risk"] }) {
