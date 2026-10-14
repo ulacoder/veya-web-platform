@@ -2,7 +2,6 @@ import { createContext, useCallback, useContext, useEffect, useId, useMemo, useR
 import {
   AlertCircle,
   ArrowLeft,
-  Camera,
   Check,
   ChevronRight,
   CircleCheck,
@@ -25,7 +24,6 @@ import {
   Search,
   Settings2,
   ShieldCheck,
-  Target,
   Trash2,
   TriangleAlert,
   Upload,
@@ -33,7 +31,6 @@ import {
   UsersRound,
   Wifi,
   X,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { interpret, isHighRisk, type InferenceResult, type ModelResult } from "@/lib/clinical";
@@ -136,8 +133,6 @@ type Patient = {
 
 const HISTORY_STORAGE_KEY_BASE = "veya_scan_history";
 const SHOW_DEMO_KEY = "veya_show_demo";
-const AUTO_ANALYZE_KEY = "veya_auto_analyze";
-const CALIBRATION_KEY = "veya_calibration_checked_at";
 
 function readSetting(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
 function writeSetting(key: string, value: string | null) { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch { /* storage unavailable */ } }
@@ -277,13 +272,7 @@ const navItems: { key: TabKey; icon: typeof Menu; label: string }[] = [
 ];
 
 function LogoMark() {
-  return (
-    <svg className="logo-mark" viewBox="0 0 34 22" aria-hidden="true">
-      <path d="M2 11C8 2.5 26 2.5 32 11C26 19.5 8 19.5 2 11Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-      <circle cx="17" cy="11" r="5.2" fill="currentColor" />
-      <circle cx="18.9" cy="9.2" r="1.6" fill="var(--lime)" />
-    </svg>
-  );
+  return <img className="logo-mark" src="/brand/veya-logo-128.png" alt="" width={40} height={40} decoding="async" />;
 }
 
 /** Stylised view of the retina as seen through the ophthalmoscope — the app's signature visual. */
@@ -561,7 +550,6 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
     setUploadedFile(file);
     setImageCheck(check);
     setStep(3);
-    if (readFlag(AUTO_ANALYZE_KEY, false) && !check.issues.length) void beginScan(file, check);
   };
   const onDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragActive(false); void handleFile(event.dataTransfer.files?.[0]); };
   const onInput = (event: ChangeEvent<HTMLInputElement>) => void handleFile(event.target.files?.[0]);
@@ -752,8 +740,6 @@ function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo, onLogout }: { onT
   const [endpoint, setEndpoint] = useState(() => readInferenceEndpoint());
   const [saved, setSaved] = useState(true);
   const [connection, setConnection] = useState<"unknown" | "testing" | "online" | "offline">("unknown");
-  const [calibratedAt, setCalibratedAt] = useState(() => readSetting(CALIBRATION_KEY));
-  const [autoUpload, setAutoUpload] = useState(() => readFlag(AUTO_ANALYZE_KEY, false));
   const commitEndpoint = () => { const next = saveInferenceEndpoint(endpoint); setEndpoint(next); if (!saved) { setSaved(true); setConnection("unknown"); toast.success(t("save")); } };
   const testConnection = async () => {
     commitEndpoint();
@@ -772,10 +758,7 @@ function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo, onLogout }: { onT
       window.clearTimeout(timer);
     }
   };
-  const runCalibration = () => { const now = new Date().toISOString(); writeSetting(CALIBRATION_KEY, now); setCalibratedAt(now); };
-  const toggleAuto = () => { const next = !autoUpload; setAutoUpload(next); writeSetting(AUTO_ANALYZE_KEY, next ? "1" : "0"); };
   const clearHistory = () => { if (!window.confirm(t("clearHistoryConfirm"))) return; writeScans([]); notifyHistory(); toast.success(t("historyCleared")); };
-  const calibratedLabel = calibratedAt ? t("lastChecked").replace("{time}", new Date(calibratedAt).toLocaleString(localeFor(language), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: language === "en" ? undefined : "h23" })) : t("notChecked");
   const statusLabel = connection === "online" ? t("statusOnline") : connection === "offline" ? t("statusOffline") : connection === "testing" ? t("testing") : t("statusUnknown");
   return (
     <div className="page page--narrow">
@@ -793,15 +776,6 @@ function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo, onLogout }: { onT
         <div className="group__head"><h2>{t("secClinic")}</h2></div>
         <div className="group__body">
           <button className="setting setting--link" onClick={() => onTab("profile")}><span className="avatar avatar--md">{profileInitials(profile?.name || "VE")}</span><span className="setting__text"><strong>{profile?.hospital || "—"}</strong><span>{[profile?.name, profile?.email].filter(Boolean).join(", ")}</span></span><span className="setting__control"><span className="link-btn">{t("edit")}<ChevronRight size={16} /></span></span></button>
-        </div>
-      </section>
-
-      <section className="group">
-        <div className="group__head"><h2>{t("secCapture")}</h2></div>
-        <div className="group__body">
-          <SettingRow icon={<Camera size={18} />} tone="blue" title={t("deviceRow")} detail={t("standardField")}><span className="status status--online"><span />{t("connectedShort")}</span></SettingRow>
-          <SettingRow icon={<Target size={18} />} title={t("cameraCalibration")} detail={calibratedLabel}><button className="btn btn--secondary btn--sm" onClick={runCalibration}>{t("check")}</button></SettingRow>
-          <SettingRow icon={<Zap size={18} />} tone="amber" title={t("autoUpload")} detail={t("autoUploadHelp")}><Switch checked={autoUpload} onChange={toggleAuto} label={t("autoUpload")} /></SettingRow>
         </div>
       </section>
 

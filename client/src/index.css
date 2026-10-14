@@ -91,7 +91,8 @@ img, svg { display: block; }
 .fine-print svg { flex: none; margin-top: 2px; }
 
 /* ---------- Brand ---------- */
-.logo-mark { width: 34px; height: 22px; color: var(--green); flex: none; }
+.logo-mark { width: 40px; height: 40px; flex: none; border-radius: 11px; box-shadow: 0 1px 2px rgba(11, 42, 33, .2); }
+.appbar .logo-mark { width: 36px; height: 36px; border-radius: 10px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand strong { display: block; color: var(--pine); font-size: 19px; font-weight: 750; letter-spacing: .14em; line-height: 1; }
 .brand span { display: block; margin-top: 5px; color: var(--ink-3); font-size: 12.5px; line-height: 1.2; }
