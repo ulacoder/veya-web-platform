@@ -1,36 +1,34 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import {
-  Activity,
   AlertCircle,
   ArrowLeft,
-  ArrowUpRight,
   Camera,
   Check,
   ChevronRight,
+  CircleCheck,
   CircleHelp,
-  CloudUpload,
   Download,
-  Eye,
   FileDown,
   FileText,
-  Gauge,
   History,
+  House,
+  ImageUp,
   Info,
+  ListChecks,
   Loader2,
   LogOut,
   Menu,
-  MoreHorizontal,
   PlugZap,
+  Plus,
   RotateCcw,
+  ScanEye,
   Search,
   Settings2,
   ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Stethoscope,
-  SunMedium,
   Target,
   Trash2,
+  TriangleAlert,
+  Upload,
   UserRound,
   UsersRound,
   Wifi,
@@ -110,7 +108,6 @@ const workflowTranslations: Record<Language, Record<string, string>> = {
   kk: { essentials: "Негізгі|мәліметтерден бастайық.", context: "Бұл мәліметтер Veya-ға скрининг контекстін түсінуге көмектеседі. Клиникалық жазбаны кейін қосуға болады.", captureFundus: "Көз түбінің|суретін түсіріңіз.", captureHelp: "visoScope құрылғысын орналастырып, анық торлы қабық суретін жүктеңіз.", age: "Жасы", reviewImage: "Суретті тексеру" },
 };
 function useI18n() { return useContext(LanguageContext) ?? { language: "en" as Language, setLanguage: () => undefined, t: (key: string) => key }; }
-function LanguageSwitcher() { const { language, setLanguage, t } = useI18n(); return <label className="language-switcher"><span>{t("language")}</span><select value={language} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={t("language")}><option value="kk">KZ</option><option value="ru">RU</option><option value="en">EN</option></select></label>; }
 const uiTranslations: Record<Language, Record<string, string>> = {
   en: { routineDetail: "No signs detected. Repeat screening in 12 months, or earlier if symptoms appear.", greetMorning: "Good morning", greetAfternoon: "Good afternoon", greetEvening: "Good evening", greetNight: "Good night", deviceConnected: "visoScope 2.0 connected", connectedShort: "Connected", vsYesterday: "{value} vs yesterday", noData: "No data yet", todayWord: "Today", yesterdayWord: "Yesterday", exporting: "Preparing PDF…", pdfReady: "Report saved: {name}", pdfFailed: "Could not create the PDF. Check the connection and try again.", fileTooLarge: "The file is larger than 10 MB. Choose a smaller image.", fileNotImage: "This file is not an image. Use JPG or PNG.", fileUnreadable: "The image could not be opened. Save it as JPG or PNG and try again.", qualityCheck: "Check image quality", issue_lowResolution: "Low resolution — the model works best from 512 px.", issue_tooDark: "The image is very dark — the retina may not be visible.", issue_tooBright: "The image is overexposed.", timeout: "The AI service did not respond within 2 minutes.", networkError: "Could not reach the AI service.", serverError: "The AI service returned an error", invalidResponse: "The AI service returned an unexpected response.", checkEndpoint: "Check the API endpoint in Settings and try again.", coldStart: "Waking up the AI server — the first analysis can take up to a minute.", cancel: "Cancel", storageFull: "Browser storage is full — the image was not saved with this scan.", savedToHistory: "Saved to history", openHistory: "Open history", analysisTimeLabel: "Analysis time {value} s", deleteConfirm: "Delete {count} selected scan(s)? This cannot be undone.", deleteOne: "Delete scan", deleteOneConfirm: "Delete this scan? This cannot be undone.", deleted: "Scan deleted", deleteFailed: "Could not delete the scan", testConnection: "Test connection", testing: "Checking…", reachable: "AI server is reachable", unreachable: "AI server is not reachable", connectionHelp: "Checks that the inference server answers. The first request after idle can take up to a minute.", statusUnknown: "NOT CHECKED", statusOnline: "ONLINE", statusOffline: "OFFLINE", autoUpload: "Auto-analyze after capture", autoUploadHelp: "Start AI screening as soon as a good-quality image is chosen", lastChecked: "Last checked {time}", notChecked: "Not checked yet", showDemo: "Show demo records", showDemoHelp: "Sample patients on the dashboard and in history", dataSection: "DATA", clearHistory: "Clear my scan history", clearHistoryHelp: "Removes scans saved in this browser for your profile", clearHistoryConfirm: "Delete all saved scans in this browser? This cannot be undone.", historyCleared: "History cleared", clearBtn: "Clear", logout: "Log out", help: "Help", helpTitle: "How to run a screening", helpStep1: "Enter the patient’s name, age and ID. Notes go into the PDF report.", helpStep2: "Choose the eye (OD — right, OS — left) and upload a centered fundus image with the optic disc visible.", helpStep3: "Run the AI screening. The model checks for diabetic retinopathy, glaucoma and cataract.", helpStep4: "Save the PDF report, attach it to the patient record and refer high-risk patients to an ophthalmologist.", helpSignalsTitle: "What the model checks", helpSignals: "Diabetic retinopathy grades 0–4, glaucoma and cataract probability. A result is flagged as high risk when any condition is positive.", helpDisclaimerTitle: "Important", helpDisclaimer: "VEYA is a screening support tool, not a diagnosis. Every result must be confirmed by an ophthalmologist.", close: "Close", demoAuthNote: "Demo sign-in: profiles are stored in this browser only.", noScansYet: "No screenings yet. Start your first one.", notesLabel: "Notes", csvExported: "History exported", noDetailStored: "Detailed AI output is not stored for this record.", ageYears: "{value} y.o." },
   ru: { routineDetail: "Признаков не выявлено. Повторный скрининг через 12 месяцев или раньше при появлении симптомов.", greetMorning: "Доброе утро", greetAfternoon: "Добрый день", greetEvening: "Добрый вечер", greetNight: "Доброй ночи", deviceConnected: "visoScope 2.0 подключён", connectedShort: "Подключено", vsYesterday: "{value} к вчера", noData: "Пока нет данных", todayWord: "Сегодня", yesterdayWord: "Вчера", exporting: "Готовим PDF…", pdfReady: "Отчёт сохранён: {name}", pdfFailed: "Не удалось создать PDF. Проверьте подключение и попробуйте снова.", fileTooLarge: "Файл больше 10 МБ. Выберите изображение поменьше.", fileNotImage: "Это не изображение. Используйте JPG или PNG.", fileUnreadable: "Не удалось открыть изображение. Сохраните его как JPG или PNG и повторите.", qualityCheck: "Проверьте качество", issue_lowResolution: "Низкое разрешение — модель лучше работает от 512 px.", issue_tooDark: "Снимок очень тёмный — сетчатка может быть не видна.", issue_tooBright: "Снимок пересвечен.", timeout: "AI-сервис не ответил за 2 минуты.", networkError: "Не удалось связаться с AI-сервисом.", serverError: "AI-сервис вернул ошибку", invalidResponse: "AI-сервис вернул неожиданный ответ.", checkEndpoint: "Проверьте API endpoint в Настройках и повторите.", coldStart: "Запускаем AI-сервер — первый анализ может занять до минуты.", cancel: "Отмена", storageFull: "Память браузера заполнена — снимок не сохранён в истории.", savedToHistory: "Сохранено в историю", openHistory: "Открыть историю", analysisTimeLabel: "Время анализа {value} с", deleteConfirm: "Удалить выбранные сканы ({count})? Это действие нельзя отменить.", deleteOne: "Удалить скан", deleteOneConfirm: "Удалить этот скан? Это действие нельзя отменить.", deleted: "Скан удалён", deleteFailed: "Не удалось удалить скан", testConnection: "Проверить связь", testing: "Проверяем…", reachable: "AI-сервер доступен", unreachable: "AI-сервер недоступен", connectionHelp: "Проверяет, что сервер анализа отвечает. Первый запрос после простоя может занять до минуты.", statusUnknown: "НЕ ПРОВЕРЕНО", statusOnline: "ОНЛАЙН", statusOffline: "ОФЛАЙН", autoUpload: "Автоанализ после снимка", autoUploadHelp: "Запускать AI-скрининг сразу после выбора качественного снимка", lastChecked: "Последняя проверка: {time}", notChecked: "Ещё не проверялась", showDemo: "Показывать демо-записи", showDemoHelp: "Примеры пациентов на главной и в истории", dataSection: "ДАННЫЕ", clearHistory: "Очистить историю сканов", clearHistoryHelp: "Удаляет сканы, сохранённые в этом браузере для вашего профиля", clearHistoryConfirm: "Удалить все сохранённые сканы в этом браузере? Действие нельзя отменить.", historyCleared: "История очищена", clearBtn: "Очистить", logout: "Выйти", help: "Помощь", helpTitle: "Как провести скрининг", helpStep1: "Введите имя, возраст и ID пациента. Заметки попадут в PDF-отчёт.", helpStep2: "Выберите глаз (OD — правый, OS — левый) и загрузите центрированный снимок глазного дна с видимым диском зрительного нерва.", helpStep3: "Запустите AI-скрининг. Модель проверяет признаки диабетической ретинопатии, глаукомы и катаракты.", helpStep4: "Сохраните PDF-отчёт, приложите его к карте пациента и направьте пациентов с высоким риском к офтальмологу.", helpSignalsTitle: "Что проверяет модель", helpSignals: "Стадии диабетической ретинопатии 0–4, вероятность глаукомы и катаракты. Результат отмечается как высокий риск, если любое состояние положительное.", helpDisclaimerTitle: "Важно", helpDisclaimer: "VEYA — инструмент поддержки скрининга, а не диагноз. Каждый результат должен подтвердить офтальмолог.", close: "Закрыть", demoAuthNote: "Демо-вход: профили хранятся только в этом браузере.", noScansYet: "Скринингов пока нет. Начните первый.", notesLabel: "Заметки", csvExported: "История выгружена", noDetailStored: "Подробный ответ AI для этой записи не сохранён.", ageYears: "{value} лет" },
@@ -265,63 +262,85 @@ function useReportExport() {
   return { exporting, exportReport };
 }
 
-const tabs: { key: TabKey; icon: typeof Menu }[] = [
-  { key: "dashboard", icon: Menu },
-  { key: "analysis", icon: Eye },
-  { key: "history", icon: History },
-  { key: "settings", icon: Settings2 },
-  { key: "profile", icon: UserRound },
+const designTranslations: Record<Language, Record<string, string>> = {
+  en: { stepNamePatient: "Patient", stepNameImage: "Image", stepNameReview: "Review", stepNameResult: "Result", howItWorks: "How it works", conditionsTitle: "Findings by condition", conditionsHint: "Positive results across all screenings in history", casesCount: "{n} of {total}", secAi: "AI model", secClinic: "Clinic", secCapture: "Capture device", secData: "Data", statusOnline: "Online", statusOffline: "Offline", statusUnknown: "Not checked", resultFor: "Screening result", recTitle: "Recommendation", captureDetailsTitle: "Capture details", exportCsv: "Export CSV", manageShort: "Select", doneShort: "Done", skip: "Skip to content", mainNav: "Main navigation", signedInAs: "Signed in", heroTitle: "Retinal screening during the visit", essentialsTitle: "Patient details", captureTitle: "Upload the fundus image", reviewTitle: "Check the image", optionalShort: "optional", deviceRow: "visoScope 2.0", positiveShort: "Positive", negativeShort: "Negative", selectedCount: "Selected: {n}", demoLocked: "Demo records cannot be deleted.", modelTag: "Live model", authLead: "Retinal screening for diabetic retinopathy, glaucoma and cataract — with a smartphone and the visoScope adapter.", newPatientHint: "Name and ID are printed on the PDF report.", resultsEmpty: "No screenings yet", resultsEmptyHint: "Run the first screening and it will appear here.", imageHint: "JPG or PNG up to 10 MB. Centered image with the optic disc visible.", chooseFile: "Choose file", dropHere: "or drag it here", eyeQuestion: "Which eye?", fileLabel: "File" },
+  ru: { stepNamePatient: "Пациент", stepNameImage: "Снимок", stepNameReview: "Проверка", stepNameResult: "Результат", howItWorks: "Как это работает", conditionsTitle: "Находки по заболеваниям", conditionsHint: "Положительные результаты по всем скринингам в истории", casesCount: "{n} из {total}", secAi: "AI-модель", secClinic: "Клиника", secCapture: "Устройство съёмки", secData: "Данные", statusOnline: "Онлайн", statusOffline: "Офлайн", statusUnknown: "Не проверено", resultFor: "Результат скрининга", recTitle: "Рекомендация", captureDetailsTitle: "Детали снимка", exportCsv: "Экспорт CSV", manageShort: "Выбрать", doneShort: "Готово", skip: "Перейти к содержимому", mainNav: "Основная навигация", signedInAs: "Вы вошли", heroTitle: "Скрининг сетчатки прямо на приёме", essentialsTitle: "Данные пациента", captureTitle: "Загрузите снимок глазного дна", reviewTitle: "Проверьте снимок", optionalShort: "необязательно", deviceRow: "visoScope 2.0", positiveShort: "Выявлено", negativeShort: "Не выявлено", selectedCount: "Выбрано: {n}", demoLocked: "Демо-записи удалить нельзя.", modelTag: "Живая модель", authLead: "Скрининг сетчатки на диабетическую ретинопатию, глаукому и катаракту — со смартфона и насадки visoScope.", newPatientHint: "Имя и ID попадут в PDF-отчёт.", resultsEmpty: "Скринингов пока нет", resultsEmptyHint: "Проведите первый скрининг — он появится здесь.", imageHint: "JPG или PNG до 10 МБ. Центрированный снимок с видимым диском зрительного нерва.", chooseFile: "Выбрать файл", dropHere: "или перетащите сюда", eyeQuestion: "Какой глаз?", fileLabel: "Файл" },
+  kk: { stepNamePatient: "Пациент", stepNameImage: "Сурет", stepNameReview: "Тексеру", stepNameResult: "Нәтиже", howItWorks: "Бұл қалай жұмыс істейді", conditionsTitle: "Аурулар бойынша нәтижелер", conditionsHint: "Тарихтағы барлық скрининг бойынша оң нәтижелер", casesCount: "{total} ішінен {n}", secAi: "AI моделі", secClinic: "Клиника", secCapture: "Түсіру құрылғысы", secData: "Деректер", statusOnline: "Онлайн", statusOffline: "Офлайн", statusUnknown: "Тексерілмеген", resultFor: "Скрининг нәтижесі", recTitle: "Ұсыныс", captureDetailsTitle: "Түсірілім мәліметтері", exportCsv: "CSV экспорттау", manageShort: "Таңдау", doneShort: "Дайын", skip: "Мазмұнға өту", mainNav: "Негізгі навигация", signedInAs: "Сіз кірдіңіз", heroTitle: "Торлы қабық скринингі қабылдау кезінде", essentialsTitle: "Пациент мәліметтері", captureTitle: "Көз түбінің суретін жүктеңіз", reviewTitle: "Суретті тексеріңіз", optionalShort: "міндетті емес", deviceRow: "visoScope 2.0", positiveShort: "Анықталды", negativeShort: "Анықталмады", selectedCount: "Таңдалды: {n}", demoLocked: "Демо жазбаларды жоюға болмайды.", modelTag: "Нақты модель", authLead: "Смартфон мен visoScope саптамасы арқылы диабеттік ретинопатия, глаукома және катарактаға торлы қабық скринингі.", newPatientHint: "Аты мен ID PDF есепке енеді.", resultsEmpty: "Әзірге скрининг жоқ", resultsEmptyHint: "Алғашқы скринингті жүргізіңіз — ол осында пайда болады.", imageHint: "JPG немесе PNG, 10 МБ дейін. Көру жүйкесінің дискісі көрінетін орталықтанған сурет.", chooseFile: "Файлды таңдау", dropHere: "немесе осында апарыңыз", eyeQuestion: "Қай көз?", fileLabel: "Файл" },
+};
+
+const navItems: { key: TabKey; icon: typeof Menu; label: string }[] = [
+  { key: "dashboard", icon: House, label: "main" },
+  { key: "analysis", icon: ScanEye, label: "analysis" },
+  { key: "history", icon: History, label: "history" },
+  { key: "settings", icon: Settings2, label: "settings" },
+  { key: "profile", icon: UserRound, label: "profile" },
 ];
 
-function LogoMark({ light = false }: { light?: boolean }) {
+function LogoMark() {
   return (
-    <span className={`logo-mark${light ? " logo-mark--light" : ""}`} aria-hidden="true">
-      <span className="logo-mark__outer" />
-      <span className="logo-mark__inner" />
-    </span>
+    <svg className="logo-mark" viewBox="0 0 34 22" aria-hidden="true">
+      <path d="M2 11C8 2.5 26 2.5 32 11C26 19.5 8 19.5 2 11Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      <circle cx="17" cy="11" r="5.2" fill="currentColor" />
+      <circle cx="18.9" cy="9.2" r="1.6" fill="var(--lime)" />
+    </svg>
   );
 }
 
-function StatusPill({ compact = false }: { compact?: boolean }) {
-  const { t } = useI18n();
+/** Stylised view of the retina as seen through the ophthalmoscope — the app's signature visual. */
+function FundusArt({ className }: { className?: string }) {
+  const id = useId().replace(/:/g, "");
   return (
-    <span className={`connection-pill${compact ? " connection-pill--compact" : ""}`}>
-      <span className="status-dot" />
-      <span>{compact ? t("connectedShort") : t("deviceConnected")}</span>
-    </span>
+    <svg className={className} viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <radialGradient id={`r${id}`} cx="58%" cy="47%" r="62%">
+          <stop offset="0" stopColor="#f6b26b" />
+          <stop offset=".28" stopColor="#df7638" />
+          <stop offset=".66" stopColor="#b2441d" />
+          <stop offset="1" stopColor="#5e1d0e" />
+        </radialGradient>
+        <radialGradient id={`d${id}`}>
+          <stop offset="0" stopColor="#fff6dc" />
+          <stop offset=".5" stopColor="#ffd795" />
+          <stop offset="1" stopColor="#f0a258" />
+        </radialGradient>
+        <clipPath id={`c${id}`}><circle cx="100" cy="100" r="100" /></clipPath>
+      </defs>
+      <g clipPath={`url(#c${id})`}>
+        <circle cx="100" cy="100" r="100" fill={`url(#r${id})`} />
+        <circle cx="80" cy="104" r="16" fill="#6b2412" opacity=".28" />
+        <g fill="none" stroke="#7a1f0e" strokeLinecap="round" opacity=".62">
+          <path d="M131 90C110 60 72 48 22 58" strokeWidth="3" />
+          <path d="M129 87C118 50 98 26 64 12" strokeWidth="2.2" />
+          <path d="M131 104C110 136 72 150 24 142" strokeWidth="3" />
+          <path d="M129 107C120 150 100 172 66 188" strokeWidth="2.2" />
+          <path d="M136 92C158 72 176 60 198 54" strokeWidth="1.8" />
+          <path d="M137 101C158 120 178 132 198 142" strokeWidth="1.8" />
+          <path d="M92 60C84 74 82 86 86 96" strokeWidth="1.2" />
+          <path d="M90 146C82 132 80 120 84 110" strokeWidth="1.2" />
+        </g>
+        <circle cx="133" cy="96" r="15" fill={`url(#d${id})`} />
+      </g>
+    </svg>
   );
 }
 
-function AppIcon({ children, tone = "mint" }: { children: ReactNode; tone?: string }) {
-  return <span className={`app-icon app-icon--${tone}`}>{children}</span>;
-}
-
-function FundusThumb({ variant, image }: { variant: string; image?: string }) {
+function LanguageSwitcher() {
+  const { language, setLanguage, t } = useI18n();
+  const options: { value: Language; label: string }[] = [{ value: "kk", label: "KZ" }, { value: "ru", label: "RU" }, { value: "en", label: "EN" }];
   return (
-    <span className={`fundus-thumb ${variant}`} aria-hidden="true">
-      <span className="fundus-thumb__vessel fundus-thumb__vessel--one" />
-      <span className="fundus-thumb__vessel fundus-thumb__vessel--two" />
-      <span className="fundus-thumb__disc" />
-      <span className="fundus-thumb__glow" />
-      {image && <img className="fundus-thumb__img" src={image} alt="" />}
-    </span>
-  );
-}
-
-function StatCard({ icon, tone, value, label, detail, trend }: { icon: ReactNode; tone: string; value: string; label: string; detail: string; trend?: string }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-card__top"><AppIcon tone={tone}>{icon}</AppIcon>{trend && <span className="trend-chip">{trend}</span>}</div>
-      <strong>{value}</strong>
-      <span className="stat-card__label">{label}</span>
-      <span className="stat-card__detail">{detail}</span>
+    <div className="lang" role="radiogroup" aria-label={t("language")}>
+      {options.map((option) => <button key={option.value} type="button" role="radio" aria-checked={language === option.value} className={language === option.value ? "is-active" : ""} onClick={() => setLanguage(option.value)}>{option.label}</button>)}
     </div>
   );
 }
 
+function FundusThumb({ variant, image }: { variant: string; image?: string }) {
+  return <span className={`thumb thumb--${variant}`} aria-hidden="true">{image ? <img src={image} alt="" /> : <FundusArt />}</span>;
+}
+
 function RiskBadge({ risk }: { risk: Patient["risk"] }) {
   const { t } = useI18n();
-  return <span className={`risk-badge risk-badge--${risk === "High risk" ? "high" : "normal"}`}><span />{risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</span>;
+  return <span className={`badge badge--${risk === "High risk" ? "risk" : "ok"}`}>{risk === "High risk" ? <TriangleAlert size={13} /> : <CircleCheck size={13} />}{risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</span>;
 }
 
 function formatToday(language: Language) {
@@ -329,14 +348,32 @@ function formatToday(language: Language) {
   if (language === "kk") {
     const weekdays = ["жексенбі", "дүйсенбі", "сейсенбі", "сәрсенбі", "бейсенбі", "жұма", "сенбі"];
     const months = ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"];
-    return `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()} ж., ${weekdays[today.getDay()]}`;
+    return `${today.getDate()} ${months[today.getMonth()]}, ${weekdays[today.getDay()]}`;
   }
-  return new Intl.DateTimeFormat(localeFor(language), { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(today);
+  return new Intl.DateTimeFormat(localeFor(language), { weekday: "long", day: "numeric", month: "long" }).format(today);
 }
 
 function greetingKey() {
   const hour = new Date().getHours();
   return hour < 5 ? "greetNight" : hour < 12 ? "greetMorning" : hour < 18 ? "greetAfternoon" : hour < 23 ? "greetEvening" : "greetNight";
+}
+
+
+function PatientRow({ patient, onClick, selectable, selected }: { patient: Patient; onClick?: () => void; selectable?: boolean; selected?: boolean }) {
+  const { language, t } = useI18n();
+  return (
+    <button className={`patient-row${selected ? " is-selected" : ""}`} onClick={onClick} aria-pressed={selectable ? selected : undefined}>
+      {selectable && <span className={`check${selected ? " is-on" : ""}${patient.source !== "live" ? " is-locked" : ""}`} aria-hidden="true">{selected && <Check size={13} strokeWidth={3} />}</span>}
+      <FundusThumb variant={patient.thumb} image={patient.image} />
+      <span className="patient-row__main">
+        <span className="patient-row__name">{patient.name}{patient.source === "demo" && <span className="tag tag--demo">{t("demo")}</span>}</span>
+        <span className="patient-row__meta"><span>{patient.id}</span><span>{scanWhen(patient, language, t)}</span></span>
+      </span>
+      <span className="patient-row__eye">{patient.eye}</span>
+      <span className="patient-row__end"><RiskBadge risk={patient.risk} /><span className="patient-row__score">{patient.score}</span></span>
+      <ChevronRight size={18} className="patient-row__chev" aria-hidden="true" />
+    </button>
+  );
 }
 
 function Dashboard({ history, onStart, onTab, onSelect, onHelp }: { history: Patient[]; onStart: () => void; onTab: (tab: TabKey) => void; onSelect: (patient: Patient) => void; onHelp: () => void }) {
@@ -346,65 +383,88 @@ function Dashboard({ history, onStart, onTab, onSelect, onHelp }: { history: Pat
     const today = new Date();
     const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
     const onDay = (scan: Patient, day: Date) => Boolean(scan.scannedAt) && new Date(scan.scannedAt as string).toDateString() === day.toDateString();
-    const todayCount = history.filter((scan) => onDay(scan, today)).length;
-    const yesterdayCount = history.filter((scan) => onDay(scan, yesterday)).length;
-    const highRisk = history.filter((scan) => scan.risk === "High risk").length;
     const latencies = history.filter((scan) => scan.latencyMs).slice(0, 30).map((scan) => scan.latencyMs as number);
-    const avgLatency = latencies.length ? latencies.reduce((sum, value) => sum + value, 0) / latencies.length / 1000 : null;
-    return { todayCount, yesterdayCount, highRisk, avgLatency, latencyCount: latencies.length };
+    const withResult = history.filter((scan) => scan.result);
+    return {
+      todayCount: history.filter((scan) => onDay(scan, today)).length,
+      yesterdayCount: history.filter((scan) => onDay(scan, yesterday)).length,
+      highRisk: history.filter((scan) => scan.risk === "High risk").length,
+      avgLatency: latencies.length ? latencies.reduce((sum, value) => sum + value, 0) / latencies.length / 1000 : null,
+      latencyCount: latencies.length,
+      total: withResult.length,
+      dr: withResult.filter((scan) => (scan.result?.dr_grade?.class ?? 0) >= 1).length,
+      glaucoma: withResult.filter((scan) => scan.result?.glaucoma?.positive).length,
+      cataract: withResult.filter((scan) => scan.result?.cataract?.positive).length,
+    };
   }, [history]);
   const delta = stats.todayCount - stats.yesterdayCount;
   const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
-  const trend = stats.yesterdayCount ? `${signed(Math.round((delta / stats.yesterdayCount) * 100))}%` : undefined;
-  const recent = history.slice(0, 4);
+  const firstName = (profile?.name || "").trim().split(/\s+/)[0] || "Doctor";
+  const conditions = [
+    { key: "dr", label: t("retinopathy"), count: stats.dr },
+    { key: "glaucoma", label: t("glaucoma"), count: stats.glaucoma },
+    { key: "cataract", label: t("cataract"), count: stats.cataract },
+  ];
   return (
-    <div className="screen screen--dashboard">
-      <header className="topbar">
-        <div className="brand-lockup"><LogoMark /><div><div className="brand-name">VEYA<span>AI</span></div><div className="brand-kicker">{t("ophthalmic")}</div></div></div>
-        <button className="avatar-button" aria-label={t("profile")} onClick={() => onTab("profile")}><span>{profileInitials(profile?.name || "Dr")}</span><span className="avatar-status" /></button>
+    <div className="page page--dash">
+      <header className="page-head">
+        <p className="page-head__kicker">{formatToday(language)}</p>
+        <h1>{t(greetingKey())}, {firstName}</h1>
+        {profile?.hospital && <p className="page-head__sub">{profile.hospital}</p>}
       </header>
 
-      <section className="welcome-row">
-        <div><p className="date-line"><SunMedium size={14} /> {formatToday(language)}</p><h1>{t(greetingKey())}, <em>{profile?.name || "Doctor"}</em></h1><p className="welcome-detail">{profile?.hospital || t("workspaceReady")}</p></div>
-        <StatusPill />
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="hero__copy">
+          <h2 id="hero-title">{t("heroTitle")}</h2>
+          <p>{t("heroDescription")}</p>
+          <div className="hero__actions">
+            <button className="btn btn--lime" onClick={onStart}><ScanEye size={19} />{t("start")}</button>
+            <button className="btn btn--on-dark" onClick={onHelp}>{t("howItWorks")}</button>
+          </div>
+          <ul className="hero__status">
+            <li><span className="pulse" />{t("deviceConnected")}</li>
+            <li><span className="pulse" />{t("modelReadyFooter")}</li>
+          </ul>
+        </div>
+        <div className="hero__scope" aria-hidden="true"><FundusArt className="hero__fundus" /><span className="hero__aperture" /></div>
       </section>
 
-      <section className="hero-card">
-        <div className="hero-card__ambient" />
-        <div className="hero-card__content"><span className="hero-card__eyebrow"><Sparkles size={14} /> {t("clinical")}</span><h2>{t("screenEarlier")}<br /><em>{t("seeClearer")}</em></h2><p>{t("heroDescription")}</p><button className="button button--light" onClick={onStart}>{t("start")} <ArrowUpRight size={17} /></button></div>
-        <div className="hero-eye" aria-hidden="true"><span className="hero-eye__ring hero-eye__ring--outer" /><span className="hero-eye__ring hero-eye__ring--middle" /><span className="hero-eye__ring hero-eye__ring--inner" /><span className="hero-eye__spark" /></div>
-        <div className="hero-card__footer"><span><span className="mini-live" /> {t("modelReadyFooter")}</span><span>{t("analysisTime")} <Zap size={12} /></span></div>
+      <section className="kpis" aria-label={t("practicePulse")}>
+        <div className="kpi"><span className="kpi__label">{t("screeningsToday")}</span><strong className="kpi__value">{stats.todayCount}</strong><span className="kpi__meta">{t("vsYesterday").replace("{value}", signed(delta))}</span></div>
+        <div className="kpi kpi--risk"><span className="kpi__label">{t("highRiskDetected")}</span><strong className="kpi__value">{stats.highRisk}</strong><span className="kpi__meta">{t("needsFollowup")}</span></div>
+        <div className="kpi"><span className="kpi__label">{t("avgLatency")}</span><strong className="kpi__value">{stats.avgLatency === null ? "—" : <>{stats.avgLatency.toFixed(1)}<small> s</small></>}</strong><span className="kpi__meta">{stats.latencyCount ? t("last30") : t("noData")}</span></div>
       </section>
 
-      <div className="section-title-row"><div><span className="eyebrow">{t("today")}</span><h2>{t("practicePulse")}</h2></div><button className="text-button" onClick={() => onTab("history")}>{t("viewHistory")} <ChevronRight size={15} /></button></div>
-      <section className="stat-grid">
-        <StatCard icon={<Activity size={17} />} tone="mint" value={String(stats.todayCount)} label={t("screeningsToday")} detail={t("vsYesterday").replace("{value}", signed(delta))} trend={trend} />
-        <StatCard icon={<AlertCircle size={17} />} tone="coral" value={String(stats.highRisk)} label={t("highRiskDetected")} detail={t("needsFollowup")} />
-        <StatCard icon={<Gauge size={17} />} tone="violet" value={stats.avgLatency === null ? "—" : `${stats.avgLatency.toFixed(1)}s`} label={t("avgLatency")} detail={stats.latencyCount ? t("last30") : t("noData")} />
-      </section>
-
-      <button className="tech-card tech-card--button" onClick={onHelp}><div className="tech-card__icon"><Target size={20} /></div><div className="tech-card__body"><span className="eyebrow">{t("whatSees")}</span><h3>{t("signalsDecision")}</h3><p>{t("signalsDescription")}</p><div className="signal-row"><span><i className="signal-dot signal-dot--amber" />{t("retinopathy")}</span><span><i className="signal-dot signal-dot--blue" />{t("glaucoma")}</span><span><i className="signal-dot signal-dot--violet" />{t("cataract")}</span></div></div><ChevronRight className="tech-card__arrow" size={18} /></button>
-
-      <div className="section-title-row section-title-row--recent"><div><span className="eyebrow">{t("recentActivity")}</span><h2>{t("latestScreenings")}</h2></div><button className="icon-button" onClick={() => onTab("history")} aria-label={t("viewHistory")}><MoreHorizontal size={19} /></button></div>
-      {recent.length ? <div className="screening-list screening-list--dashboard">{recent.map((patient) => <PatientRow key={`${patient.source}-${scanKey(patient)}`} patient={patient} compact onClick={() => onSelect(patient)} />)}</div> : <button className="empty-state empty-state--button" onClick={onStart}><Sparkles size={20} /><strong>{t("noScansYet")}</strong><span>{t("start")}</span></button>}
+      <div className="dash-grid">
+        <section className="panel">
+          <div className="panel__head"><h2>{t("latestScreenings")}</h2><button className="link-btn" onClick={() => onTab("history")}>{t("viewHistory")}<ChevronRight size={16} /></button></div>
+          {history.length ? <div className="list">{history.slice(0, 5).map((patient) => <PatientRow key={`${patient.source}-${scanKey(patient)}`} patient={patient} onClick={() => onSelect(patient)} />)}</div> : <div className="empty"><FundusArt className="empty__art" /><strong>{t("resultsEmpty")}</strong><span>{t("resultsEmptyHint")}</span><button className="btn btn--primary" onClick={onStart}>{t("start")}</button></div>}
+        </section>
+        <section className="panel panel--conditions">
+          <div className="panel__head"><h2>{t("conditionsTitle")}</h2></div>
+          <p className="panel__hint">{t("conditionsHint")}</p>
+          <ul className="conditions">
+            {conditions.map((item) => <li key={item.key}><span className={`cond-dot cond-dot--${item.key}`} /><span className="conditions__name">{item.label}</span><span className="conditions__count">{t("casesCount").replace("{n}", String(item.count)).replace("{total}", String(stats.total))}</span><span className="conditions__bar"><span className={`fill fill--${item.key}`} style={{ width: `${stats.total ? (item.count / stats.total) * 100 : 0}%` }} /></span></li>)}
+          </ul>
+          <button className="link-btn" onClick={onHelp}><CircleHelp size={16} />{t("howItWorks")}</button>
+        </section>
+      </div>
     </div>
   );
 }
 
-function PatientRow({ patient, compact = false, onClick }: { patient: Patient; compact?: boolean; onClick?: () => void }) {
-  const { language, t } = useI18n();
+function Stepper({ step }: { step: number }) {
+  const { t } = useI18n();
+  const names = [t("stepNamePatient"), t("stepNameImage"), t("stepNameReview"), t("stepNameResult")];
   return (
-    <button className={`patient-row${compact ? " patient-row--compact" : ""}`} onClick={onClick}>
-      <FundusThumb variant={patient.thumb} image={patient.image} />
-      <span className="patient-row__main"><strong>{patient.name}</strong><span>{patient.id} <b>·</b> {scanWhen(patient, language, t)}{patient.source === "demo" && <i className="demo-chip">{t("demo")}</i>}</span></span>
-      <span className="patient-row__end"><RiskBadge risk={patient.risk} /><span className="patient-score">{patient.score}</span></span>
-      {!compact && <ChevronRight size={16} className="patient-row__chevron" />}
-    </button>
+    <ol className="stepper">
+      {names.map((name, index) => {
+        const n = index + 1;
+        const state = n < step ? "is-done" : n === step ? "is-current" : "";
+        return <li key={name} className={state} aria-current={n === step ? "step" : undefined}><span className="stepper__n">{n < step ? <Check size={14} strokeWidth={3} /> : n}</span><span className="stepper__label">{name}</span></li>;
+      })}
+    </ol>
   );
-}
-
-function SplitTitle({ text }: { text: string }) {
-  return <>{text.split("|").map((part, index) => <span key={`${index}-${part}`}>{index > 0 && <br />}{index === 1 ? <em>{part}</em> : part}</span>)}</>;
 }
 
 function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory: () => void }) {
@@ -426,6 +486,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
 
   useEffect(() => () => abortRef.current?.abort(), []);
   useEffect(() => () => { if (fileUrl) URL.revokeObjectURL(fileUrl); }, [fileUrl]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
 
   const beginScan = async (file: File | null = uploadedFile, check: ImageCheck | null = imageCheck) => {
     if (!file || scanning) return;
@@ -475,7 +536,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
       setSavedScan(scan);
       setStep(4);
     } catch (error) {
-      if (controller.signal.aborted && !timedOut) return; // cancelled by the user or the screen closed
+      if (controller.signal.aborted && !timedOut) return;
       const message = timedOut ? t("timeout") : error instanceof TypeError ? t("networkError") : error instanceof Error ? error.message : t("networkError");
       setScanError(`${message} ${t("checkEndpoint")}`);
     } finally {
@@ -488,7 +549,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
   };
 
   const handleFile = async (file?: File) => {
-    if (fileInput.current) fileInput.current.value = ""; // allow choosing the same file again
+    if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
     const invalid = validateImageFile(file);
     if (invalid) { setScanError(t(invalid === "tooLarge" ? "fileTooLarge" : "fileNotImage")); return; }
@@ -507,17 +568,68 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
   const cancelScan = () => abortRef.current?.abort();
   const restart = () => { abortRef.current?.abort(); setStep(1); setFileName(""); setFileUrl(""); setUploadedFile(null); setImageCheck(null); setSavedScan(null); setScanError(""); setForm({ name: "", age: "", id: "", notes: "" }); };
   const qualityOk = !imageCheck?.issues.length;
+  const openPicker = () => fileInput.current?.click();
 
   return (
-    <div className="screen screen--analysis">
-      <header className="subpage-header"><button className="icon-button" onClick={onBack} aria-label={t("back")}><ArrowLeft size={19} /></button><div><span className="eyebrow">{t("newWorkflow")}</span><h1>{t("newScreening")}</h1></div><span className="step-counter">0{Math.min(step, 4)} <span>/ 04</span></span></header>
-      <div className="progress-track"><span style={{ width: `${step * 25}%` }} /></div>
+    <div className={`page page--flow${step === 4 ? " page--results" : ""}`}>
+      <header className="flow-head">
+        <button className="icon-btn" onClick={onBack} aria-label={t("back")}><ArrowLeft size={20} /></button>
+        <h1>{t("newScreening")}</h1>
+      </header>
+      <Stepper step={step} />
+      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/*" onChange={onInput} hidden />
 
-      {step === 1 && <section className="flow-section flow-section--intro"><div className="flow-icon"><Stethoscope size={25} /></div><span className="eyebrow">{t("stepPatient")}</span><h2><SplitTitle text={t("essentials")} /></h2><p className="flow-lead">{t("context")}</p><form className="form-stack" onSubmit={(event) => { event.preventDefault(); setStep(2); }}><label>{t("patientName")}<input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Aigerim Sadykova" autoComplete="off" /></label><div className="form-row"><label>{t("age")}<input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value.replace(/[^\d]/g, "").slice(0, 3) })} placeholder={t("years")} /></label><label>{t("patientId")}<input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="VE-00000" autoComplete="off" /></label></div><label>{t("symptoms")} <span className="optional">{t("optional")}</span><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("notePlaceholder")} rows={3} /></label><button className="button button--primary button--full" type="submit">{t("continueCapture")} <ChevronRight size={17} /></button></form></section>}
+      {step === 1 && <section className="flow-card">
+        <h2>{t("essentialsTitle")}</h2>
+        <p className="lead">{t("newPatientHint")}</p>
+        <form className="form" onSubmit={(event) => { event.preventDefault(); setStep(2); }}>
+          <label className="field"><span className="field__label">{t("patientName")}</span><input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Aigerim Sadykova" autoComplete="off" /></label>
+          <div className="form__row">
+            <label className="field field--age"><span className="field__label">{t("age")}</span><input inputMode="numeric" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value.replace(/[^\d]/g, "").slice(0, 3) })} placeholder={t("years")} /></label>
+            <label className="field"><span className="field__label">{t("patientId")}</span><input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} placeholder="VE-00000" autoComplete="off" /></label>
+          </div>
+          <label className="field"><span className="field__label">{t("symptoms")} <span className="field__opt">{t("optionalShort")}</span></span><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("notePlaceholder")} rows={3} /></label>
+          <div className="flow-actions"><button className="btn btn--primary btn--block" type="submit">{t("continueCapture")}<ChevronRight size={18} /></button></div>
+        </form>
+      </section>}
 
-      {step === 2 && <section className="flow-section"><div className="flow-section__top"><div><span className="eyebrow">{t("stepCapture")}</span><h2><SplitTitle text={t("captureFundus")} /></h2></div><AppIcon tone="blue"><Camera size={19} /></AppIcon></div><p className="flow-lead">{t("captureHelp")}</p><div className="eye-toggle"><button className={eye === "OS" ? "is-active" : ""} onClick={() => setEye("OS")}><span>{t("leftEye")}</span><b>OS</b></button><button className={eye === "OD" ? "is-active" : ""} onClick={() => setEye("OD")}><span>{t("rightEye")}</span><b>OD</b></button></div><div role="button" tabIndex={0} className={`capture-zone${dragActive ? " is-dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} onClick={() => fileInput.current?.click()} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.current?.click(); } }}><input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/*" onChange={onInput} hidden /><div className="viewfinder"><span className="viewfinder__crosshair" /><span className="viewfinder__arc viewfinder__arc--one" /><span className="viewfinder__arc viewfinder__arc--two" /><Eye size={23} /></div><strong>{fileName || t("dropImage")}</strong><span>{fileName ? t("imageReady") : t("browseImage")}</span></div>{scanError ? <div className="capture-tip capture-tip--error"><AlertCircle size={15} /><span>{scanError}</span></div> : <div className="capture-tip"><Info size={15} /><span>{t("bestResults")}</span></div>}<button className="button button--primary button--full" onClick={() => fileName ? setStep(3) : fileInput.current?.click()}>{fileName ? t("reviewImage") : t("uploadImage")} <CloudUpload size={17} /></button><button className="button button--ghost button--full" onClick={() => setStep(1)}>{t("backPatient")}</button></section>}
+      {step === 2 && <section className="flow-card">
+        <h2>{t("captureTitle")}</h2>
+        <p className="lead">{t("captureHelp")}</p>
+        <div className="field"><span className="field__label" id="eye-label">{t("eyeQuestion")}</span>
+          <div className="seg seg--eye" role="radiogroup" aria-labelledby="eye-label">
+            <button type="button" role="radio" aria-checked={eye === "OS"} className={eye === "OS" ? "is-active" : ""} onClick={() => setEye("OS")}>{t("leftEye")} <b>OS</b></button>
+            <button type="button" role="radio" aria-checked={eye === "OD"} className={eye === "OD" ? "is-active" : ""} onClick={() => setEye("OD")}>{t("rightEye")} <b>OD</b></button>
+          </div>
+        </div>
+        <div role="button" tabIndex={0} aria-label={t("uploadImage")} className={`dropzone${dragActive ? " is-dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} onClick={openPicker} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } }}>
+          <span className="dropzone__aperture"><ImageUp size={28} /></span>
+          <strong>{fileName || t("chooseFile")}</strong>
+          <span>{fileName ? t("imageReady") : t("dropHere")}</span>
+        </div>
+        {scanError ? <p className="note note--error" role="alert"><AlertCircle size={18} />{scanError}</p> : <p className="note"><Info size={18} />{t("imageHint")}</p>}
+        <div className="flow-actions">
+          <button className="btn btn--primary btn--block" onClick={() => fileName ? setStep(3) : openPicker()}>{fileName ? t("reviewImage") : t("uploadImage")}<Upload size={18} /></button>
+          <button className="btn btn--ghost btn--block" onClick={() => setStep(1)}>{t("backPatient")}</button>
+        </div>
+      </section>}
 
-      {step === 3 && <section className="flow-section"><div className="flow-section__top"><div><span className="eyebrow">{t("stepReview")}</span><h2><SplitTitle text={t("readySignal")} /></h2></div><AppIcon tone="violet"><Sparkles size={18} /></AppIcon></div><p className="flow-lead">{t("reviewHelp")}</p><div className="scan-preview">{fileUrl ? <img src={fileUrl} alt={t("uploadedPreview")} /> : <FundusThumb variant="fundus-amber" />}<div className="scan-preview__overlay"><span className="scan-eye-label">{eye} · {t("fundusImage")}</span><span className={`scan-quality${qualityOk ? "" : " scan-quality--warn"}`}>{qualityOk ? <Check size={13} /> : <AlertCircle size={13} />} {qualityOk ? t("qualityGood") : t("qualityCheck")}</span></div></div>{!qualityOk && <div className="capture-tip capture-tip--warn"><AlertCircle size={15} /><span>{imageCheck?.issues.map((issue) => t(`issue_${issue}`)).join(" ")}</span></div>}<div className="review-meta"><span><FileText size={15} />{fileName}{imageCheck ? ` · ${imageCheck.width}×${imageCheck.height}` : ""}</span><button onClick={() => { cancelScan(); setStep(2); }} disabled={scanning}><RotateCcw size={14} />{t("replace")}</button></div><div className="model-note"><span className="mini-live" /><div><strong>{t("inferenceTitle")}</strong><span>{slowHint ? t("coldStart") : t("modelInference")}</span></div></div>{scanError && <div className="capture-tip capture-tip--error"><AlertCircle size={15} /><span>{scanError}</span></div>}<button className="button button--primary button--full" onClick={() => void beginScan()} disabled={scanning}>{scanning ? t("analyzing") : t("runScreening")} {scanning ? <Loader2 size={17} className="spin" /> : <ArrowUpRight size={17} />}</button>{scanning ? <button className="button button--ghost button--full" onClick={cancelScan}>{t("cancel")}</button> : <button className="button button--ghost button--full" onClick={() => setStep(2)}>{t("backCapture")}</button>}</section>}
+      {step === 3 && <section className="flow-card">
+        <h2>{t("reviewTitle")}</h2>
+        <p className="lead">{t("reviewHelp")}</p>
+        <figure className={`preview${scanning ? " is-scanning" : ""}`}>
+          {fileUrl ? <img src={fileUrl} alt={t("uploadedPreview")} /> : <FundusArt />}
+          <figcaption><span className="chip chip--dark">{eye} · {eye === "OS" ? t("leftEye") : t("rightEye")}</span><span className={`chip ${qualityOk ? "chip--ok" : "chip--warn"}`}>{qualityOk ? <Check size={13} /> : <AlertCircle size={13} />}{qualityOk ? t("qualityGood") : t("qualityCheck")}</span></figcaption>
+        </figure>
+        {!qualityOk && <p className="note note--warn"><AlertCircle size={18} />{imageCheck?.issues.map((issue) => t(`issue_${issue}`)).join(" ")}</p>}
+        <div className="file-line"><FileText size={17} /><span className="file-line__name">{fileName}</span>{imageCheck && <span className="file-line__dim">{imageCheck.width}×{imageCheck.height}</span>}<button className="link-btn" onClick={() => { cancelScan(); openPicker(); }} disabled={scanning}><RotateCcw size={15} />{t("replace")}</button></div>
+        <p className={`note${slowHint ? " note--warn" : ""}`}>{scanning ? <Loader2 size={18} className="spin" /> : <ShieldCheck size={18} />}{slowHint ? t("coldStart") : t("modelInference")}</p>
+        {scanError && <p className="note note--error" role="alert"><AlertCircle size={18} />{scanError}</p>}
+        <div className="flow-actions">
+          <button className="btn btn--primary btn--block" onClick={() => void beginScan()} disabled={scanning}>{scanning ? <Loader2 size={18} className="spin" /> : <ScanEye size={18} />}{scanning ? t("analyzing") : t("runScreening")}</button>
+          {scanning ? <button className="btn btn--ghost btn--block" onClick={cancelScan}>{t("cancel")}</button> : <button className="btn btn--ghost btn--block" onClick={() => setStep(2)}>{t("backCapture")}</button>}
+        </div>
+      </section>}
 
       {step === 4 && savedScan && <Results scan={savedScan} onRestart={restart} onOpenHistory={onOpenHistory} />}
     </div>
@@ -527,15 +639,53 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
 function MetricsCard({ result, live }: { result: InferenceResult | null | undefined; live: boolean }) {
   const { t } = useI18n();
   const analysis = interpret(result, t);
-  return <div className="metrics-card"><div className="card-title-row"><div><span className="eyebrow">{t("signalBreakdown")}</span><h3>{t("modelResults")}</h3></div><span className="demo-tag">{live ? t("liveModel") : t("demo")}</span></div>{analysis.metrics.map((metric) => <div className="metric-bar" key={metric.key}><div><span>{metric.label}</span><strong>{metric.value}%</strong></div><div className="metric-track"><span className={`metric-fill metric-fill--${metric.tone}`} style={{ width: `${metric.value}%` }} /></div><small>{metric.note}</small>{metric.detail && <small className="metric-detail">{metric.detail}</small>}</div>)}{live && <details className="raw-response"><summary>{t("rawResponse")}</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}</div>;
+  return (
+    <section className="panel metrics">
+      <div className="panel__head"><h3>{t("modelResults")}</h3><span className={`tag ${live ? "tag--live" : "tag--demo"}`}>{live ? t("modelTag") : t("demo")}</span></div>
+      <ul className="metrics__list">
+        {analysis.metrics.map((metric) => (
+          <li key={metric.key} className={metric.positive ? "is-positive" : ""}>
+            <div className="metrics__top"><span className={`cond-dot cond-dot--${metric.key}`} /><span className="metrics__name">{metric.label}</span><span className={`metrics__flag ${metric.positive ? "metrics__flag--pos" : ""}`}>{metric.positive ? t("positiveShort") : t("negativeShort")}</span><strong className="metrics__value">{metric.value}%</strong></div>
+            <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={metric.value} aria-label={metric.label}><span className={`fill fill--${metric.key}`} style={{ width: `${metric.value}%` }} /></div>
+            {metric.key === "dr" && result?.dr_grade && <div className="grades">{analysis.drProbabilities.slice(0, 5).map((p, i) => <span key={i} className={i === result.dr_grade?.class ? "is-max" : ""}><small>{t("grade")} {i}</small>{Math.round(p * 100)}%</span>)}</div>}
+          </li>
+        ))}
+      </ul>
+      {live && <details className="raw"><summary>{t("rawResponse")}</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
+    </section>
+  );
 }
 
 function Results({ scan, onRestart, onOpenHistory }: { scan: Patient; onRestart: () => void; onOpenHistory: () => void }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const analysis = interpret(scan.result, t);
   const { exporting, exportReport } = useReportExport();
-  const meta = [scan.name, scan.age ? t("ageYears").replace("{value}", scan.age) : "", scan.latencyMs ? t("analysisTimeLabel").replace("{value}", (scan.latencyMs / 1000).toFixed(1)) : ""].filter(Boolean).join(" · ");
-  return <section className="flow-section results-section"><div className="result-head"><div className="result-check"><Check size={24} /></div><span className="eyebrow">{t("screeningComplete")} · {scan.eye}</span><h2><SplitTitle text={t("clinicalSignal")} /></h2><p className="flow-lead">{meta}</p></div><div className={`result-banner ${analysis.highRisk ? "result-banner--high" : "result-banner--normal"}`}><div><span className="eyebrow">{t("triage")}</span><strong>{analysis.statusTitle}</strong><p>{analysis.statusDetail}</p></div>{analysis.highRisk ? <AlertCircle size={28} /> : <Check size={28} />}</div><MetricsCard result={scan.result} live /><div className="recommendation"><AppIcon tone="mint"><Stethoscope size={17} /></AppIcon><div><span className="eyebrow">{t("clinicalAction")}</span><strong>{analysis.recommendationTitle}</strong><p>{analysis.recommendationDetail}</p></div></div><p className="disclaimer-note"><ShieldCheck size={13} />{t("helpDisclaimer")}</p><button className="button button--primary button--full" onClick={() => void exportReport(scan)} disabled={exporting}>{exporting ? <Loader2 size={17} className="spin" /> : <Download size={17} />}{exporting ? t("exporting") : t("exportReport")}</button><div className="button-pair"><button className="button button--ghost button--full" onClick={onOpenHistory}><History size={16} />{t("openHistory")}</button><button className="button button--ghost button--full" onClick={onRestart}><RotateCcw size={16} />{t("another")}</button></div></section>;
+  return (
+    <section className="results-section">
+      <div className={`verdict verdict--${analysis.highRisk ? "risk" : "ok"}`} role="status">
+        <span className="verdict__icon">{analysis.highRisk ? <TriangleAlert size={24} /> : <CircleCheck size={24} />}</span>
+        <div><p className="verdict__kicker">{t("resultFor")}, {scan.eye === "OS" ? t("leftEye").toLowerCase() : t("rightEye").toLowerCase()}</p><h2>{analysis.statusTitle}</h2><p>{analysis.statusDetail}</p></div>
+      </div>
+      <div className="results-grid">
+        <div className="results-main">
+          <div className="panel patient-card">
+            <FundusThumb variant={scan.thumb} image={scan.image} />
+            <div><strong>{scan.name}</strong><span className="patient-card__meta"><span>{scan.id}</span>{scan.age && <span>{t("ageYears").replace("{value}", scan.age)}</span>}<span>{scanWhen(scan, language, t)}</span>{scan.latencyMs && <span>{t("analysisTimeLabel").replace("{value}", (scan.latencyMs / 1000).toFixed(1))}</span>}</span></div>
+          </div>
+          <MetricsCard result={scan.result} live />
+        </div>
+        <aside className="results-side">
+          <div className={`panel rec rec--${analysis.highRisk ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{analysis.recommendationTitle}</strong><p>{analysis.recommendationDetail}</p></div>
+          <div className="stack">
+            <button className="btn btn--primary btn--block" onClick={() => void exportReport(scan)} disabled={exporting}>{exporting ? <Loader2 size={18} className="spin" /> : <Download size={18} />}{exporting ? t("exporting") : t("exportReport")}</button>
+            <button className="btn btn--secondary btn--block" onClick={onOpenHistory}><History size={18} />{t("openHistory")}</button>
+            <button className="btn btn--ghost btn--block" onClick={onRestart}><Plus size={18} />{t("another")}</button>
+          </div>
+          <p className="fine-print"><ShieldCheck size={15} />{t("helpDisclaimer")}</p>
+        </aside>
+      </div>
+    </section>
+  );
 }
 
 function HistoryScreen({ history, onSelect }: { history: Patient[]; onSelect: (patient: Patient) => void }) {
@@ -550,7 +700,7 @@ function HistoryScreen({ history, onSelect }: { history: Patient[]; onSelect: (p
   const normalCount = history.filter((patient) => patient.risk === "Normal").length;
   const highRiskCount = history.filter((patient) => patient.risk === "High risk").length;
   const selectedScans = filtered.filter((patient) => patient.source === "live" && selectedIds.includes(scanKey(patient)));
-  const toggleSelected = (patient: Patient) => { if (patient.source !== "live") return; const key = scanKey(patient); setSelectedIds((ids) => ids.includes(key) ? ids.filter((id) => id !== key) : [...ids, key]); };
+  const toggleSelected = (patient: Patient) => { if (patient.source !== "live") { toast.info(t("demoLocked")); return; } const key = scanKey(patient); setSelectedIds((ids) => ids.includes(key) ? ids.filter((id) => id !== key) : [...ids, key]); };
   const removeSelected = async () => {
     if (!selectedScans.length || !window.confirm(t("deleteConfirm").replace("{count}", String(selectedScans.length)))) return;
     setBusy(true);
@@ -561,10 +711,42 @@ function HistoryScreen({ history, onSelect }: { history: Patient[]; onSelect: (p
     if (failed) toast.error(t("deleteFailed")); else toast.success(t("deleted"));
   };
   const exportCsv = () => { exportScansCsv(filtered, language, t); toast.success(t("csvExported")); };
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="mint"><History size={18} /></AppIcon><div><span className="eyebrow">{t("archive")}</span><h1>{t("history")}</h1></div></div><div className="history-actions"><button className="icon-button" onClick={exportCsv} aria-label={t("export")} title={t("export")} disabled={!filtered.length}><FileDown size={18} /></button><button className={`icon-button${manageMode ? " is-active" : ""}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-label={t("manage")} title={t("manage")}><SlidersHorizontal size={17} /></button></div></header><div className="history-summary"><div><strong>{history.length}</strong><span>{t("total")}</span></div><div><strong>{history.length ? Math.round((normalCount / history.length) * 100) : 0}%</strong><span>{t("normal")}</span></div><div><strong>{highRiskCount}</strong><span>{t("followups")}</span></div></div><div className="search-field"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} />{query && <button onClick={() => setQuery("")} aria-label={t("close")}><X size={15} /></button>}</div><div className="filter-row">{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{filterLabel(item)}{item !== "All" && <span>{history.filter((patient) => patient.risk === item).length}</span>}</button>)}</div>{manageMode && <div className="history-manage-bar"><span>{selectedScans.length} {t("selected")} · {t("demoProtected")}</span><button className="text-button" disabled={!selectedScans.length || busy} onClick={() => void removeSelected()}><Trash2 size={14} />{busy ? t("deleting") : t("delete")}</button></div>}<div className="section-title-row section-title-row--history"><div><span className="eyebrow">{t("allScans")}</span><h2>{filtered.length} {filtered.length === 1 ? t("screening") : t("screenings")}</h2></div></div><div className="screening-list">{filtered.length ? filtered.map((patient) => <div className="history-item" key={`${patient.source}-${scanKey(patient)}`}>{manageMode && <input type="checkbox" disabled={patient.source !== "live"} checked={selectedIds.includes(scanKey(patient))} onChange={() => toggleSelected(patient)} aria-label={patient.name} />}<PatientRow patient={patient} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} /></div>) : <div className="empty-state"><Search size={20} /><strong>{t("noFound")}</strong><span>{t("tryAgain")}</span></div>}</div></div>;
+  const counts: Record<RiskFilter, number> = { All: history.length, "High risk": highRiskCount, Normal: normalCount };
+  return (
+    <div className="page">
+      <header className="page-head page-head--row">
+        <div><h1>{t("history")}</h1><p className="page-head__sub">{t("historyStored")}</p></div>
+        <div className="page-actions">
+          <button className="btn btn--secondary btn--sm" onClick={exportCsv} disabled={!filtered.length}><FileDown size={17} />{t("exportCsv")}</button>
+          <button className={`btn btn--sm ${manageMode ? "btn--primary" : "btn--secondary"}`} onClick={() => { setManageMode(!manageMode); setSelectedIds([]); }} aria-pressed={manageMode}>{manageMode ? <Check size={17} /> : <ListChecks size={17} />}{manageMode ? t("doneShort") : t("manageShort")}</button>
+        </div>
+      </header>
+      <section className="kpis kpis--compact" aria-label={t("total")}>
+        <div className="kpi"><span className="kpi__label">{t("total")}</span><strong className="kpi__value">{history.length}</strong></div>
+        <div className="kpi"><span className="kpi__label">{t("normal")}</span><strong className="kpi__value">{history.length ? Math.round((normalCount / history.length) * 100) : 0}<small>%</small></strong></div>
+        <div className="kpi kpi--risk"><span className="kpi__label">{t("followups")}</span><strong className="kpi__value">{highRiskCount}</strong></div>
+      </section>
+      <div className="toolbar">
+        <label className="search"><Search size={18} aria-hidden="true" /><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")} />{query && <button onClick={() => setQuery("")} aria-label={t("close")}><X size={16} /></button>}</label>
+        <div className="seg" role="radiogroup" aria-label={t("allFilter")}>{(["All", "High risk", "Normal"] as RiskFilter[]).map((item) => <button key={item} role="radio" aria-checked={filter === item} className={filter === item ? "is-active" : ""} onClick={() => setFilter(item)}>{filterLabel(item)}<span className="seg__count">{counts[item]}</span></button>)}</div>
+      </div>
+      {manageMode && <div className="manage-bar"><span>{t("selectedCount").replace("{n}", String(selectedScans.length))}</span><span className="manage-bar__hint">{t("demoLocked")}</span><button className="btn btn--danger btn--sm" disabled={!selectedScans.length || busy} onClick={() => void removeSelected()}><Trash2 size={16} />{busy ? t("deleting") : t("delete")}</button></div>}
+      <section className="panel panel--flush">
+        {filtered.length ? <div className="list">{filtered.map((patient) => <PatientRow key={`${patient.source}-${scanKey(patient)}`} patient={patient} selectable={manageMode} selected={selectedIds.includes(scanKey(patient))} onClick={() => manageMode ? toggleSelected(patient) : onSelect(patient)} />)}</div> : <div className="empty"><Search size={22} /><strong>{history.length ? t("noFound") : t("resultsEmpty")}</strong><span>{history.length ? t("tryAgain") : t("resultsEmptyHint")}</span></div>}
+      </section>
+    </div>
+  );
 }
 
-function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo }: { onTab: (tab: TabKey) => void; onHelp: () => void; showDemo: boolean; onShowDemo: (value: boolean) => void }) {
+function SettingRow({ icon, title, detail, children, tone = "green" }: { icon: ReactNode; title: string; detail?: ReactNode; children?: ReactNode; tone?: string }) {
+  return <div className="setting"><span className={`setting__icon setting__icon--${tone}`}>{icon}</span><div className="setting__text"><strong>{title}</strong>{detail && <span>{detail}</span>}</div>{children && <div className="setting__control">{children}</div>}</div>;
+}
+
+function Switch({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`switch${checked ? " is-on" : ""}`} onClick={onChange}><span /></button>;
+}
+
+function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo, onLogout }: { onTab: (tab: TabKey) => void; onHelp: () => void; showDemo: boolean; onShowDemo: (value: boolean) => void; onLogout: () => void }) {
   const { language, t } = useI18n();
   const profile = activeProfile();
   const [endpoint, setEndpoint] = useState(() => readInferenceEndpoint());
@@ -580,7 +762,6 @@ function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo }: { onTab: (tab: 
     const timer = window.setTimeout(() => controller.abort(), 75_000);
     try {
       const url = new URL(readInferenceEndpoint());
-      // Any HTTP answer from the server means it is up; no-cors avoids CORS rejections on the health probe.
       await fetch(`${url.origin}/`, { method: "GET", mode: "no-cors", cache: "no-store", signal: controller.signal });
       setConnection("online");
       toast.success(t("reachable"));
@@ -594,29 +775,91 @@ function SettingsScreen({ onTab, onHelp, showDemo, onShowDemo }: { onTab: (tab: 
   const runCalibration = () => { const now = new Date().toISOString(); writeSetting(CALIBRATION_KEY, now); setCalibratedAt(now); };
   const toggleAuto = () => { const next = !autoUpload; setAutoUpload(next); writeSetting(AUTO_ANALYZE_KEY, next ? "1" : "0"); };
   const clearHistory = () => { if (!window.confirm(t("clearHistoryConfirm"))) return; writeScans([]); notifyHistory(); toast.success(t("historyCleared")); };
-  const calibratedLabel = calibratedAt ? t("lastChecked").replace("{time}", new Date(calibratedAt).toLocaleString(localeFor(language), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })) : t("notChecked");
-  const statusTag = connection === "online" ? t("statusOnline") : connection === "offline" ? t("statusOffline") : connection === "testing" ? t("testing") : t("statusUnknown");
-  return <div className="screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><Settings2 size={18} /></AppIcon><div><span className="eyebrow">{t("workspace")}</span><h1>{t("settingsTitle")}</h1></div></div><button className="icon-button" onClick={onHelp} aria-label={t("help")} title={t("help")}><CircleHelp size={18} /></button></header><section className="settings-hero"><div className="settings-hero__orb"><PlugZap size={21} /></div><div><span className="eyebrow">{t("deviceStatus")}</span><h2>{t("inSync")}</h2><p>{t("captureReady")}</p></div><StatusPill compact /></section>
-    <div className="settings-group"><div className="group-label"><span>{t("aiBackend")}</span><span className={`demo-tag demo-tag--${connection}`}>{statusTag}</span></div><div className="settings-card"><label className="setting-field"><span>{t("endpoint")}</span><div className="setting-input"><Wifi size={15} /><input value={endpoint} inputMode="url" spellCheck={false} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={commitEndpoint} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></div><small>{t("endpointHelp")}</small></label><div className="setting-row"><div><strong>{t("testConnection")}</strong><span>{t("connectionHelp")}</span></div><button className={`toggle-button${connection === "online" ? " is-active" : ""}`} onClick={() => void testConnection()} disabled={connection === "testing"}>{connection === "testing" ? <Loader2 size={13} className="spin" /> : t("check")}</button></div></div></div>
-    <div className="settings-group"><div className="group-label"><span>{t("clinicProfile")}</span><button className="text-button" onClick={() => onTab("profile")}>{t("edit")} <ArrowUpRight size={14} /></button></div><button className="settings-card settings-card--profile settings-card--button" onClick={() => onTab("profile")}><div className="clinic-avatar">{profileInitials(profile?.hospital || profile?.name || "VE")}</div><div><strong>{profile?.hospital || "—"}</strong><span>{profile?.name || ""}{profile?.email ? ` · ${profile.email}` : ""}</span></div><ChevronRight size={17} /></button></div>
-    <div className="settings-group"><div className="group-label"><span>{t("captureSystem")}</span><span className="calibration-status"><Check size={12} /> {calibratedAt ? t("calibrated") : t("notChecked")}</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="blue"><Camera size={16} /></AppIcon><div><strong>{t("optical")}</strong><span>{t("standardField")}</span></div></div></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="mint"><Target size={16} /></AppIcon><div><strong>{t("cameraCalibration")}</strong><span>{calibratedLabel}</span></div></div><button className={`toggle-button${calibratedAt ? " is-active" : ""}`} onClick={runCalibration}>{t("check")}</button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="amber"><CloudUpload size={16} /></AppIcon><div><strong>{t("autoUpload")}</strong><span>{t("autoUploadHelp")}</span></div></div><button role="switch" aria-checked={autoUpload} className={`toggle-switch${autoUpload ? " is-active" : ""}`} onClick={toggleAuto} aria-label={t("autoUpload")}><i /></button></div></div></div>
-    <div className="settings-group"><div className="group-label"><span>{t("dataSection")}</span></div><div className="settings-card"><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="violet"><UsersRound size={16} /></AppIcon><div><strong>{t("showDemo")}</strong><span>{t("showDemoHelp")}</span></div></div><button role="switch" aria-checked={showDemo} className={`toggle-switch${showDemo ? " is-active" : ""}`} onClick={() => onShowDemo(!showDemo)} aria-label={t("showDemo")}><i /></button></div><div className="setting-row"><div className="setting-with-icon"><AppIcon tone="coral"><Trash2 size={16} /></AppIcon><div><strong>{t("clearHistory")}</strong><span>{t("clearHistoryHelp")}</span></div></div><button className="toggle-button toggle-button--danger" onClick={clearHistory}>{t("clearBtn")}</button></div></div></div>
-    <div className="settings-footer"><ShieldCheck size={15} /> {t("historyStored")}<button className="text-button" onClick={() => { writeSetting(ACTIVE_PROFILE_KEY, null); window.location.reload(); }}><LogOut size={13} />{t("logout")}</button></div></div>;
+  const calibratedLabel = calibratedAt ? t("lastChecked").replace("{time}", new Date(calibratedAt).toLocaleString(localeFor(language), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: language === "en" ? undefined : "h23" })) : t("notChecked");
+  const statusLabel = connection === "online" ? t("statusOnline") : connection === "offline" ? t("statusOffline") : connection === "testing" ? t("testing") : t("statusUnknown");
+  return (
+    <div className="page page--narrow">
+      <header className="page-head page-head--row"><div><h1>{t("settingsTitle")}</h1></div><button className="btn btn--secondary btn--sm" onClick={onHelp}><CircleHelp size={17} />{t("help")}</button></header>
+
+      <section className="group">
+        <div className="group__head"><h2>{t("secAi")}</h2><span className={`status status--${connection}`}><span />{statusLabel}</span></div>
+        <div className="group__body">
+          <label className="field field--inset"><span className="field__label">{t("endpoint")}</span><span className="input-icon"><Wifi size={17} aria-hidden="true" /><input value={endpoint} inputMode="url" spellCheck={false} onChange={(e) => { setEndpoint(e.target.value); setSaved(false); }} onBlur={commitEndpoint} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></span><span className="field__help">{t("endpointHelp")}</span></label>
+          <SettingRow icon={<PlugZap size={18} />} title={t("testConnection")} detail={t("connectionHelp")}><button className="btn btn--secondary btn--sm" onClick={() => void testConnection()} disabled={connection === "testing"}>{connection === "testing" ? <Loader2 size={16} className="spin" /> : null}{t("check")}</button></SettingRow>
+        </div>
+      </section>
+
+      <section className="group">
+        <div className="group__head"><h2>{t("secClinic")}</h2></div>
+        <div className="group__body">
+          <button className="setting setting--link" onClick={() => onTab("profile")}><span className="avatar avatar--md">{profileInitials(profile?.name || "VE")}</span><span className="setting__text"><strong>{profile?.hospital || "—"}</strong><span>{[profile?.name, profile?.email].filter(Boolean).join(", ")}</span></span><span className="setting__control"><span className="link-btn">{t("edit")}<ChevronRight size={16} /></span></span></button>
+        </div>
+      </section>
+
+      <section className="group">
+        <div className="group__head"><h2>{t("secCapture")}</h2></div>
+        <div className="group__body">
+          <SettingRow icon={<Camera size={18} />} tone="blue" title={t("deviceRow")} detail={t("standardField")}><span className="status status--online"><span />{t("connectedShort")}</span></SettingRow>
+          <SettingRow icon={<Target size={18} />} title={t("cameraCalibration")} detail={calibratedLabel}><button className="btn btn--secondary btn--sm" onClick={runCalibration}>{t("check")}</button></SettingRow>
+          <SettingRow icon={<Zap size={18} />} tone="amber" title={t("autoUpload")} detail={t("autoUploadHelp")}><Switch checked={autoUpload} onChange={toggleAuto} label={t("autoUpload")} /></SettingRow>
+        </div>
+      </section>
+
+      <section className="group">
+        <div className="group__head"><h2>{t("secData")}</h2></div>
+        <div className="group__body">
+          <SettingRow icon={<UsersRound size={18} />} tone="violet" title={t("showDemo")} detail={t("showDemoHelp")}><Switch checked={showDemo} onChange={() => onShowDemo(!showDemo)} label={t("showDemo")} /></SettingRow>
+          <SettingRow icon={<Trash2 size={18} />} tone="red" title={t("clearHistory")} detail={t("clearHistoryHelp")}><button className="btn btn--danger btn--sm" onClick={clearHistory}>{t("clearBtn")}</button></SettingRow>
+        </div>
+      </section>
+
+      <footer className="page-foot"><span><ShieldCheck size={16} />{t("historyStored")}</span><button className="btn btn--ghost btn--sm" onClick={onLogout}><LogOut size={16} />{t("logout")}</button></footer>
+    </div>
+  );
 }
 
 function useEscape(onClose: () => void) {
   useEffect(() => {
     const listener = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", listener);
-    return () => window.removeEventListener("keydown", listener);
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", listener); document.body.style.overflow = overflow; };
   }, [onClose]);
+}
+
+function Sheet({ label, onClose, children, className = "" }: { label: string; onClose: () => void; children: ReactNode; className?: string }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLElement>(null);
+  useEscape(onClose);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    return () => opener?.focus?.();
+  }, []);
+  // Keep keyboard focus inside the dialog while it is open.
+  const trapFocus = (event: React.KeyboardEvent) => {
+    if (event.key !== "Tab" || !ref.current) return;
+    const focusable = ref.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), textarea, summary, [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <aside ref={ref} className={`sheet ${className}`} role="dialog" aria-modal="true" aria-label={label} onClick={(event) => event.stopPropagation()} onKeyDown={trapFocus}>
+        <div className="sheet__bar"><span className="sheet__grip" aria-hidden="true" /><button className="icon-btn" onClick={onClose} aria-label={t("close")} autoFocus><X size={20} /></button></div>
+        <div className="sheet__body">{children}</div>
+      </aside>
+    </div>
+  );
 }
 
 function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => void }) {
   const { language, t } = useI18n();
   const { exporting, exportReport } = useReportExport();
   const [deleting, setDeleting] = useState(false);
-  useEscape(onClose);
   const analysis = interpret(patient.result, t);
   const remove = async () => {
     if (!window.confirm(t("deleteOneConfirm"))) return;
@@ -625,13 +868,48 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
     setDeleting(false);
     if (ok) { toast.success(t("deleted")); onClose(); } else toast.error(t("deleteFailed"));
   };
-  return <div className="drawer-backdrop" onClick={onClose}><aside className="patient-drawer" role="dialog" aria-modal="true" aria-label={t("screeningDetail")} onClick={(e) => e.stopPropagation()}><div className="drawer-handle" /><div className="drawer-top"><span className="eyebrow">{t("screeningDetail")}</span><button className="icon-button" onClick={onClose} aria-label={t("close")}><X size={18} /></button></div><div className="drawer-profile"><FundusThumb variant={patient.thumb} image={patient.image} /><div><h2>{patient.name}</h2><span>{patient.id} · {scanWhen(patient, language, t)}{patient.age ? ` · ${t("ageYears").replace("{value}", patient.age)}` : ""}</span></div></div>{patient.image && <img className="drawer-image" src={patient.image} alt={t("uploadedPreview")} />}<div className={`drawer-status drawer-status--${patient.risk === "High risk" ? "high" : "normal"}`}><div><span className="eyebrow">{t("triage")}</span><strong>{analysis.hasResult ? analysis.statusTitle : patient.risk === "High risk" ? t("highRiskFilter") : t("normalFilter")}</strong>{analysis.hasResult && <p>{analysis.statusDetail}</p>}</div><RiskBadge risk={patient.risk} /></div><div className="drawer-section"><span className="eyebrow">{t("captureDetails")}</span><div className="detail-grid"><div><span>{t("eye")}</span><strong>{patient.eye} · {patient.eye === "OS" ? t("left") : t("right")}</strong></div><div><span>{t("confidence")}</span><strong>{patient.score}</strong></div><div><span>{t("latency")}</span><strong>{patient.latencyMs ? `${(patient.latencyMs / 1000).toFixed(1)} s` : "—"}</strong></div><div><span>{t("device")}</span><strong>visoScope 2.0</strong></div></div></div>{analysis.hasResult ? <div className="drawer-section"><MetricsCard result={patient.result} live={patient.source === "live"} /></div> : <p className="drawer-muted">{t("noDetailStored")}</p>}{patient.notes && <div className="drawer-section"><span className="eyebrow">{t("notesLabel")}</span><p className="drawer-notes">{patient.notes}</p></div>}<div className="drawer-section"><span className="eyebrow">{t("recommendation")}</span><div className="recommendation recommendation--drawer"><AppIcon tone="mint"><Stethoscope size={16} /></AppIcon><div><strong>{patient.risk === "High risk" ? t("followup") : t("routine")}</strong><p>{patient.risk === "High risk" ? t("reviewContext") : t("routineDetail")}</p></div></div></div><button className="button button--primary button--full" onClick={() => void exportReport(patient)} disabled={exporting}>{exporting ? <Loader2 size={16} className="spin" /> : <Download size={16} />}{exporting ? t("exporting") : t("exportReport")}</button>{patient.source === "live" && <button className="button button--danger-ghost button--full" onClick={() => void remove()} disabled={deleting}><Trash2 size={15} />{t("deleteOne")}</button>}</aside></div>;
+  const high = patient.risk === "High risk";
+  return (
+    <Sheet label={t("screeningDetail")} onClose={onClose} className="sheet--patient">
+      <div className="sheet-patient">
+        <FundusThumb variant={patient.thumb} image={patient.image} />
+        <div><h2>{patient.name}{patient.source === "demo" && <span className="tag tag--demo">{t("demo")}</span>}</h2><p className="sheet-patient__meta"><span>{patient.id}</span><span>{scanWhen(patient, language, t)}</span>{patient.age && <span>{t("ageYears").replace("{value}", patient.age)}</span>}</p></div>
+      </div>
+      {patient.image && <img className="sheet-image" src={patient.image} alt={t("uploadedPreview")} />}
+      <div className={`verdict verdict--compact verdict--${high ? "risk" : "ok"}`}>
+        <span className="verdict__icon">{high ? <TriangleAlert size={20} /> : <CircleCheck size={20} />}</span>
+        <div><h3>{analysis.hasResult ? analysis.statusTitle : high ? t("highRiskFilter") : t("normalFilter")}</h3>{analysis.hasResult && <p>{analysis.statusDetail}</p>}</div>
+      </div>
+      <dl className="facts">
+        <div><dt>{t("eye")}</dt><dd>{patient.eye}, {patient.eye === "OS" ? t("left").toLowerCase() : t("right").toLowerCase()}</dd></div>
+        <div><dt>{t("confidence")}</dt><dd>{patient.score}</dd></div>
+        <div><dt>{t("latency")}</dt><dd>{patient.latencyMs ? `${(patient.latencyMs / 1000).toFixed(1)} s` : "—"}</dd></div>
+        <div><dt>{t("device")}</dt><dd>visoScope 2.0</dd></div>
+      </dl>
+      {analysis.hasResult ? <MetricsCard result={patient.result} live={patient.source === "live"} /> : <p className="note">{t("noDetailStored")}</p>}
+      {patient.notes && <section className="sheet-section"><h3>{t("notesLabel")}</h3><p className="prose">{patient.notes}</p></section>}
+      <section className={`panel rec rec--${high ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{high ? t("followup") : t("routine")}</strong><p>{high ? t("reviewContext") : t("routineDetail")}</p></section>
+      <div className="sheet-actions">
+        <button className="btn btn--primary btn--block" onClick={() => void exportReport(patient)} disabled={exporting}>{exporting ? <Loader2 size={18} className="spin" /> : <Download size={18} />}{exporting ? t("exporting") : t("exportReport")}</button>
+        {patient.source === "live" && <button className="btn btn--ghost-danger btn--block" onClick={() => void remove()} disabled={deleting}><Trash2 size={17} />{t("deleteOne")}</button>}
+      </div>
+    </Sheet>
+  );
 }
 
 function HelpSheet({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
   const { t } = useI18n();
-  useEscape(onClose);
-  return <div className="drawer-backdrop" onClick={onClose}><aside className="patient-drawer help-sheet" role="dialog" aria-modal="true" aria-label={t("helpTitle")} onClick={(e) => e.stopPropagation()}><div className="drawer-handle" /><div className="drawer-top"><span className="eyebrow">VEYA AI · {t("help")}</span><button className="icon-button" onClick={onClose} aria-label={t("close")}><X size={18} /></button></div><h2 className="help-title">{t("helpTitle")}</h2><ol className="help-steps">{[1, 2, 3, 4].map((n) => <li key={n}><span>{n}</span><p>{t(`helpStep${n}`)}</p></li>)}</ol><div className="drawer-section"><span className="eyebrow">{t("helpSignalsTitle")}</span><p className="drawer-notes">{t("helpSignals")}</p><div className="signal-row"><span><i className="signal-dot signal-dot--amber" />{t("retinopathy")}</span><span><i className="signal-dot signal-dot--blue" />{t("glaucoma")}</span><span><i className="signal-dot signal-dot--violet" />{t("cataract")}</span></div></div><div className="help-warning"><ShieldCheck size={16} /><div><strong>{t("helpDisclaimerTitle")}</strong><p>{t("helpDisclaimer")}</p></div></div><button className="button button--primary button--full" onClick={() => { onClose(); onStart(); }}>{t("start")} <ArrowUpRight size={16} /></button><button className="button button--ghost button--full" onClick={onClose}>{t("close")}</button></aside></div>;
+  return (
+    <Sheet label={t("helpTitle")} onClose={onClose} className="sheet--help">
+      <h2 className="sheet-title">{t("helpTitle")}</h2>
+      <ol className="steps">{[1, 2, 3, 4].map((n) => <li key={n}><span className="steps__n">{n}</span><p>{t(`helpStep${n}`)}</p></li>)}</ol>
+      <section className="sheet-section"><h3>{t("helpSignalsTitle")}</h3><p className="prose">{t("helpSignals")}</p>
+        <ul className="legend"><li><span className="cond-dot cond-dot--dr" />{t("retinopathy")}</li><li><span className="cond-dot cond-dot--glaucoma" />{t("glaucoma")}</li><li><span className="cond-dot cond-dot--cataract" />{t("cataract")}</li></ul>
+      </section>
+      <div className="note note--warn note--block"><ShieldCheck size={18} /><div><strong>{t("helpDisclaimerTitle")}</strong><p>{t("helpDisclaimer")}</p></div></div>
+      <div className="sheet-actions"><button className="btn btn--primary btn--block" onClick={() => { onClose(); onStart(); }}><ScanEye size={18} />{t("start")}</button></div>
+    </Sheet>
+  );
 }
 
 function ProfileScreen({ onLogout }: { onLogout: () => void }) {
@@ -639,8 +917,22 @@ function ProfileScreen({ onLogout }: { onLogout: () => void }) {
   const ru = language === "ru"; const kk = language === "kk";
   const text = { title: ru ? "Профиль" : kk ? "Профиль" : "Profile", name: ru ? "Имя врача" : kk ? "Дәрігер аты" : "Doctor name", hospital: ru ? "Больница или клиника" : kk ? "Аурухана немесе клиника" : "Hospital or clinic", email: "Email", save: ru ? "Сохранить изменения" : kk ? "Өзгерістерді сақтау" : "Save changes", logout: ru ? "Выйти из аккаунта" : kk ? "Аккаунттан шығу" : "Log out", saved: ru ? "Профиль сохранён" : kk ? "Профиль сақталды" : "Profile saved", hint: ru ? "Имя врача и клиника печатаются в PDF-отчётах." : kk ? "Дәрігер аты мен клиника PDF есептерде басылады." : "Your name and clinic are printed on PDF reports." };
   const [name, setName] = useState(current?.name || ""); const [hospital, setHospital] = useState(current?.hospital || "");
-  const save = (event: React.FormEvent) => { event.preventDefault(); if (!current) return; const next = readProfiles().map((profile) => profile.id === current.id ? { ...profile, name: name.trim() || profile.name, hospital: hospital.trim() || profile.hospital } : profile); localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(next)); toast.success(text.saved); };
-  return <div className="screen profile-screen"><header className="topbar"><div className="page-brand"><AppIcon tone="violet"><UserRound size={18} /></AppIcon><div><span className="eyebrow">VEYA AI</span><h1>{text.title}</h1></div></div></header><section className="profile-hero"><div className="profile-avatar">{profileInitials(name)}</div><h2>{name || "Doctor"}</h2><p>{hospital}</p></section><form className="profile-card" onSubmit={save}><label>{text.name}<input value={name} onChange={(event) => setName(event.target.value)} /></label><label>{text.hospital}<input value={hospital} onChange={(event) => setHospital(event.target.value)} /></label><label>{text.email}<input value={current?.email || ""} disabled /></label><small className="profile-hint">{text.hint}</small><button className="button button--primary button--full" type="submit">{text.save}</button><button className="button button--ghost button--full" type="button" onClick={onLogout}><LogOut size={15} />{text.logout}</button></form></div>;
+  const save = (event: React.FormEvent) => { event.preventDefault(); if (!current) return; const next = readProfiles().map((profile) => profile.id === current.id ? { ...profile, name: name.trim() || profile.name, hospital: hospital.trim() || profile.hospital } : profile); localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(next)); notifyHistory(); toast.success(text.saved); };
+  return (
+    <div className="page page--narrow">
+      <header className="page-head"><h1>{text.title}</h1></header>
+      <section className="panel profile">
+        <div className="profile__id"><span className="avatar avatar--lg">{profileInitials(name || "Dr")}</span><div><strong>{name || "—"}</strong><span>{hospital}</span><span>{current?.email}</span></div></div>
+        <form className="form" onSubmit={save}>
+          <label className="field"><span className="field__label">{text.name}</span><input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" /></label>
+          <label className="field"><span className="field__label">{text.hospital}</span><input value={hospital} onChange={(event) => setHospital(event.target.value)} autoComplete="organization" /></label>
+          <label className="field"><span className="field__label">{text.email}</span><input value={current?.email || ""} disabled /></label>
+          <p className="field__help">{text.hint}</p>
+          <div className="form__actions"><button className="btn btn--primary" type="submit">{text.save}</button><button className="btn btn--ghost" type="button" onClick={onLogout}><LogOut size={17} />{text.logout}</button></div>
+        </form>
+      </section>
+    </div>
+  );
 }
 
 async function hashPassword(password: string) {
@@ -648,14 +940,14 @@ async function hashPassword(password: string) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`veya:${password}`));
     return `sha256:${Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
   } catch {
-    return password; // insecure context without WebCrypto: fall back to the old behaviour
+    return password;
   }
 }
 
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: Profile) => void }) {
   const { language, t } = useI18n();
   const ru = language === "ru"; const kk = language === "kk";
-  const text = { title: ru ? "Вход в VEYA" : kk ? "VEYA жүйесіне кіру" : "Sign in to VEYA", subtitle: ru ? "Ваши скрининги будут сохранены в личном профиле." : kk ? "Скринингтеріңіз жеке профиліңізде сақталады." : "Your screenings are saved in your private profile.", login: ru ? "Войти" : kk ? "Кіру" : "Sign in", register: ru ? "Создать профиль" : kk ? "Профиль жасау" : "Create profile", name: ru ? "Имя врача" : kk ? "Дәрігер аты" : "Doctor name", hospital: ru ? "Клиника или больница" : kk ? "Клиника немесе аурухана" : "Clinic or hospital", email: "Email", password: ru ? "Пароль" : kk ? "Құпиясөз" : "Password", submit: ru ? "Продолжить" : kk ? "Жалғастыру" : "Continue", short: ru ? "Пароль должен быть не короче 6 символов." : kk ? "Құпиясөз кемінде 6 таңбадан тұруы керек." : "Password must be at least 6 characters." };
+  const text = { title: ru ? "Вход в VEYA" : kk ? "VEYA жүйесіне кіру" : "Sign in to VEYA", subtitle: ru ? "Ваши скрининги будут сохранены в личном профиле." : kk ? "Скринингтеріңіз жеке профиліңізде сақталады." : "Your screenings are saved in your private profile.", login: ru ? "У меня уже есть профиль" : kk ? "Менде профиль бар" : "I already have a profile", register: ru ? "Создать профиль" : kk ? "Профиль жасау" : "Create profile", registerTitle: ru ? "Новый профиль врача" : kk ? "Жаңа дәрігер профилі" : "New clinician profile", name: ru ? "Имя врача" : kk ? "Дәрігер аты" : "Doctor name", hospital: ru ? "Клиника или больница" : kk ? "Клиника немесе аурухана" : "Clinic or hospital", email: "Email", password: ru ? "Пароль" : kk ? "Құпиясөз" : "Password", submit: ru ? "Войти" : kk ? "Кіру" : "Sign in", create: ru ? "Создать профиль" : kk ? "Профиль жасау" : "Create profile", short: ru ? "Пароль должен быть не короче 6 символов." : kk ? "Құпиясөз кемінде 6 таңбадан тұруы керек." : "Password must be at least 6 characters.", noAccount: ru ? "Нет профиля?" : kk ? "Профиль жоқ па?" : "No profile yet?" };
   const [registerMode, setRegisterMode] = useState(false); const [form, setForm] = useState({ name: "", hospital: "", email: "", password: "" }); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -676,11 +968,36 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: Profile) =
     }
     const profile = users.find((user) => user.email === email && (user.password === hashed || user.password === form.password));
     if (!profile) { setError(ru ? "Неверный email или пароль." : kk ? "Email немесе құпиясөз қате." : "Incorrect email or password."); return; }
-    if (profile.password !== hashed) localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users.map((user) => user.id === profile.id ? { ...user, password: hashed } : user))); // upgrade legacy plain-text password
+    if (profile.password !== hashed) localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users.map((user) => user.id === profile.id ? { ...user, password: hashed } : user)));
     localStorage.setItem(ACTIVE_PROFILE_KEY, profile.id);
     onAuthenticated({ ...profile, password: hashed });
   };
-  return <div className="auth-screen"><div className="language-floating"><LanguageSwitcher /></div><div className="auth-card"><div className="auth-brand">VEYA<span>AI</span></div><span className="eyebrow">{text.title}</span><h1>{registerMode ? text.register : text.title}</h1><p>{text.subtitle}</p><form onSubmit={(event) => void submit(event)}>{registerMode && <><label>{text.name}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} autoComplete="name" /></label><label>{text.hospital}<input value={form.hospital} onChange={(event) => setForm({ ...form, hospital: event.target.value })} autoComplete="organization" /></label></>}<label>{text.email}<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} autoComplete="email" /></label><label>{text.password}<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} autoComplete={registerMode ? "new-password" : "current-password"} /></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary button--full" type="submit" disabled={busy}>{text.submit}</button></form><button className="button button--ghost button--full" onClick={() => { setRegisterMode(!registerMode); setError(""); }}>{registerMode ? text.login : text.register}</button><small>{t("demoAuthNote")}</small></div></div>;
+  return (
+    <div className="auth">
+      <aside className="auth__brand" aria-hidden="true">
+        <div className="auth__logo"><LogoMark /><span>VEYA</span></div>
+        <div className="auth__scope"><FundusArt className="auth__fundus" /><span className="hero__aperture" /></div>
+        <p>{t("authLead")}</p>
+      </aside>
+      <main className="auth__main">
+        <div className="auth__top"><div className="auth__logo auth__logo--mobile"><LogoMark /><span>VEYA</span></div><LanguageSwitcher /></div>
+        <div className="auth__card">
+          <FundusArt className="auth__mini" />
+          <h1>{registerMode ? text.registerTitle : text.title}</h1>
+          <p className="lead">{text.subtitle}</p>
+          <form className="form" onSubmit={(event) => void submit(event)}>
+            {registerMode && <><label className="field"><span className="field__label">{text.name}</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} autoComplete="name" /></label><label className="field"><span className="field__label">{text.hospital}</span><input value={form.hospital} onChange={(event) => setForm({ ...form, hospital: event.target.value })} autoComplete="organization" /></label></>}
+            <label className="field"><span className="field__label">{text.email}</span><input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} autoComplete="email" /></label>
+            <label className="field"><span className="field__label">{text.password}</span><input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} autoComplete={registerMode ? "new-password" : "current-password"} /></label>
+            {error && <p className="note note--error" role="alert"><AlertCircle size={18} />{error}</p>}
+            <button className="btn btn--primary btn--block" type="submit" disabled={busy}>{registerMode ? text.create : text.submit}</button>
+          </form>
+          <p className="auth__switch">{!registerMode && <span>{text.noAccount}</span>}<button className="link-btn" onClick={() => { setRegisterMode(!registerMode); setError(""); }}>{registerMode ? text.login : text.register}</button></p>
+          <p className="fine-print"><ShieldCheck size={15} />{t("demoAuthNote")}</p>
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export default function Home() {
@@ -691,21 +1008,52 @@ export default function Home() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [showDemo, setShowDemo] = useState(() => readFlag(SHOW_DEMO_KEY, true));
   const [savedScans, setSavedScans] = useState<Patient[]>(() => readSavedScans());
+  const [, setProfileVersion] = useState(0);
   const [demo] = useState(demoPatients);
-  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
+  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : designTranslations[language][key] || uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || designTranslations.en[key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
 
-  useEffect(() => { const refresh = () => setSavedScans(readSavedScans()); refresh(); window.addEventListener("veya-history-updated", refresh); window.addEventListener("storage", refresh); return () => { window.removeEventListener("veya-history-updated", refresh); window.removeEventListener("storage", refresh); }; }, [profile?.id]);
+  useEffect(() => { const refresh = () => { setSavedScans(readSavedScans()); setProfileVersion((v) => v + 1); }; refresh(); window.addEventListener("veya-history-updated", refresh); window.addEventListener("storage", refresh); return () => { window.removeEventListener("veya-history-updated", refresh); window.removeEventListener("storage", refresh); }; }, [profile?.id]);
   useEffect(() => { document.documentElement.lang = language; }, [language]);
   useEffect(() => { window.scrollTo({ top: 0 }); }, [activeTab]);
 
   const history = useMemo(() => [...savedScans, ...(showDemo ? demo : [])].sort((a, b) => (Date.parse(b.scannedAt || "") || 0) - (Date.parse(a.scannedAt || "") || 0)), [savedScans, showDemo, demo]);
-  const navigate = (tab: TabKey) => setActiveTab(tab);
   const changeLanguage = (next: Language) => { setLanguage(next); writeSetting("veya_language", next); };
   const changeShowDemo = (value: boolean) => { setShowDemo(value); writeSetting(SHOW_DEMO_KEY, value ? "1" : "0"); };
   const logout = () => { writeSetting(ACTIVE_PROFILE_KEY, null); setProfile(null); setActiveTab("dashboard"); };
-  const closeDrawer = () => setDrawerPatient(null);
-  const closeHelp = () => setHelpOpen(false);
+  const closeDrawer = useCallback(() => setDrawerPatient(null), []);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const current = activeProfile() || profile;
+  const initials = profileInitials(current?.name || "Dr");
 
   if (!profile) return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><AuthScreen onAuthenticated={setProfile} /></LanguageContext.Provider>;
-  return <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}><div className="app-shell"><div className="app-frame"><div className="language-floating"><LanguageSwitcher /></div><main className="app-main">{activeTab === "dashboard" && <Dashboard history={history} onStart={() => setActiveTab("analysis")} onTab={navigate} onSelect={setDrawerPatient} onHelp={() => setHelpOpen(true)} />}{activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} onOpenHistory={() => setActiveTab("history")} />}{activeTab === "history" && <HistoryScreen history={history} onSelect={setDrawerPatient} />}{activeTab === "settings" && <SettingsScreen onTab={navigate} onHelp={() => setHelpOpen(true)} showDemo={showDemo} onShowDemo={changeShowDemo} />}{activeTab === "profile" && <ProfileScreen key={profile.id} onLogout={logout} />}</main><nav className="bottom-bar" aria-label="Primary navigation">{tabs.map(({ key, icon: Icon }) => <button key={key} className={activeTab === key ? "is-active" : ""} aria-current={activeTab === key ? "page" : undefined} onClick={() => setActiveTab(key)}><span className="nav-icon"><Icon size={19} strokeWidth={activeTab === key ? 2.4 : 1.8} /></span><span>{t(key === "dashboard" ? "main" : key)}</span></button>)}</nav></div>{drawerPatient && <PatientDrawer patient={drawerPatient} onClose={closeDrawer} />}{helpOpen && <HelpSheet onClose={closeHelp} onStart={() => setActiveTab("analysis")} />}</div></LanguageContext.Provider>;
+  const navButton = (item: (typeof navItems)[number]) => { const Icon = item.icon; const active = activeTab === item.key; return <button key={item.key} data-nav={item.key} className={active ? "is-active" : ""} aria-current={active ? "page" : undefined} onClick={() => setActiveTab(item.key)}><Icon size={21} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" /><span>{t(item.label)}</span></button>; };
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}>
+      <div className="shell">
+        <a className="skip" href="#main">{t("skip")}</a>
+        <aside className="sidebar">
+          <div className="brand"><LogoMark /><div><strong>VEYA</strong><span>{t("ophthalmic")}</span></div></div>
+          <nav className="sidebar__nav" aria-label={t("mainNav")}>{navItems.filter((item) => item.key !== "profile").map(navButton)}</nav>
+          <div className="sidebar__foot">
+            <LanguageSwitcher />
+            <button className={`user-chip${activeTab === "profile" ? " is-active" : ""}`} data-nav="profile" onClick={() => setActiveTab("profile")}><span className="avatar">{initials}</span><span className="user-chip__text"><strong>{current?.name}</strong><span>{current?.hospital}</span></span></button>
+          </div>
+        </aside>
+        <header className="appbar">
+          <div className="brand brand--compact"><LogoMark /><strong>VEYA</strong></div>
+          <div className="appbar__end"><LanguageSwitcher /><button className="avatar" onClick={() => setActiveTab("profile")} aria-label={t("profile")}>{initials}</button></div>
+        </header>
+        <main className="main" id="main" tabIndex={-1}>
+          {activeTab === "dashboard" && <Dashboard history={history} onStart={() => setActiveTab("analysis")} onTab={setActiveTab} onSelect={setDrawerPatient} onHelp={() => setHelpOpen(true)} />}
+          {activeTab === "analysis" && <Analysis onBack={() => setActiveTab("dashboard")} onOpenHistory={() => setActiveTab("history")} />}
+          {activeTab === "history" && <HistoryScreen history={history} onSelect={setDrawerPatient} />}
+          {activeTab === "settings" && <SettingsScreen onTab={setActiveTab} onHelp={() => setHelpOpen(true)} showDemo={showDemo} onShowDemo={changeShowDemo} onLogout={logout} />}
+          {activeTab === "profile" && <ProfileScreen key={profile.id} onLogout={logout} />}
+        </main>
+        <nav className="tabbar" aria-label={t("mainNav")}>{navItems.map(navButton)}</nav>
+        {drawerPatient && <PatientDrawer patient={drawerPatient} onClose={closeDrawer} />}
+        {helpOpen && <HelpSheet onClose={closeHelp} onStart={() => setActiveTab("analysis")} />}
+      </div>
+    </LanguageContext.Provider>
+  );
 }
