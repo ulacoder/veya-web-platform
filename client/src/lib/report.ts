@@ -2,7 +2,7 @@
 // pdfmake (+ Roboto, which covers Latin, Russian and Kazakh Cyrillic) is loaded lazily on first export
 // so it does not weigh down the initial page load.
 import type { Content, TDocumentDefinitions } from "pdfmake/interfaces";
-import { interpret, type InferenceResult } from "./clinical";
+import { DISEASE_ORDER, interpret, type Explanation, type InferenceResult, type Recommendations } from "./clinical";
 
 export type ReportLanguage = "en" | "ru" | "kk";
 
@@ -19,6 +19,8 @@ export type ReportScan = {
   time: string;
   image?: string;
   result?: InferenceResult | null;
+  explanation?: Explanation;
+  recommendations?: Recommendations;
   latencyMs?: number;
   source?: "live" | "demo";
   recordId?: string;
@@ -36,6 +38,7 @@ const L: Record<ReportLanguage, Record<string, string>> = {
     recommendation: "RECOMMENDATION", notes: "CLINICAL NOTES", none: "—", latency: "Analysis time", confidence: "AI confidence",
     noDetail: "Detailed model output is not available for this record. Summary values are shown.", demo: "Demo record",
     disclaimer: "This report was produced by the VEYA AI screening system and is intended to support, not replace, clinical judgement. It is not a diagnosis. All findings must be confirmed by a qualified ophthalmologist.",
+    reasoning: "AI REASONING", heatmap: "AI attention map (Grad-CAM)", when: "When", actions: "What to do", exams: "Examinations",
     signature: "Physician signature", stamp: "Date", page: "Page", of: "of",
   },
   ru: {
@@ -47,6 +50,7 @@ const L: Record<ReportLanguage, Record<string, string>> = {
     recommendation: "РЕКОМЕНДАЦИЯ", notes: "КЛИНИЧЕСКИЕ ЗАМЕТКИ", none: "—", latency: "Время анализа", confidence: "Уверенность AI",
     noDetail: "Подробный ответ модели для этой записи недоступен. Показаны итоговые значения.", demo: "Демо-запись",
     disclaimer: "Отчёт сформирован системой AI-скрининга VEYA и служит поддержкой клинического решения, а не его заменой. Это не диагноз. Все результаты должны быть подтверждены врачом-офтальмологом.",
+    reasoning: "ОБОСНОВАНИЕ ИИ", heatmap: "Карта внимания ИИ (Grad-CAM)", when: "Когда", actions: "Что сделать", exams: "Обследования",
     signature: "Подпись врача", stamp: "Дата", page: "Стр.", of: "из",
   },
   kk: {
@@ -58,6 +62,7 @@ const L: Record<ReportLanguage, Record<string, string>> = {
     recommendation: "ҰСЫНЫС", notes: "КЛИНИКАЛЫҚ ЖАЗБАЛАР", none: "—", latency: "Талдау уақыты", confidence: "AI сенімділігі",
     noDetail: "Бұл жазба үшін модельдің толық жауабы жоқ. Қорытынды мәндер көрсетілген.", demo: "Демо жазба",
     disclaimer: "Есепті VEYA AI-скрининг жүйесі құрды. Ол клиникалық шешімді алмастырмайды, тек қолдайды. Бұл диагноз емес. Барлық нәтижелерді офтальмолог дәрігер растауы тиіс.",
+    reasoning: "ЖИ НЕГІЗДЕМЕСІ", heatmap: "ЖИ назар картасы (Grad-CAM)", when: "Қашан", actions: "Не істеу керек", exams: "Тексерулер",
     signature: "Дәрігердің қолы", stamp: "Күні", page: "Бет", of: "/",
   },
 };
@@ -166,7 +171,7 @@ export function buildReportDefinition(scan: ReportScan, language: ReportLanguage
         { text: highRisk ? s.high : s.normal, bold: true, fontSize: 10, color: highRisk ? C.red : C.deep, characterSpacing: 0.4 },
         ...(hasDetail ? [
           { text: analysis.statusTitle, bold: true, fontSize: 12, color: C.ink, margin: [0, 5, 0, 2] } as Content,
-          { text: analysis.statusDetail, fontSize: 9, color: C.ink, lineHeight: 1.25 } as Content,
+          { text: scan.recommendations ? `${scan.recommendations.headline} — ${scan.recommendations.timeframe}.` : analysis.statusDetail, fontSize: 9, color: C.ink, lineHeight: 1.25 } as Content,
         ] : []),
       ],
       fillColor: highRisk ? C.redSoft : C.soft,
@@ -212,10 +217,70 @@ export function buildReportDefinition(scan: ReportScan, language: ReportLanguage
     content.push({ text: s.noDetail, fontSize: 9, color: C.muted, italics: true });
   }
 
+  // Why the AI answered so
+  const ex = scan.explanation;
+  if (ex) {
+    content.push(label(s.reasoning));
+    const flagged = ex.findings.filter((f) => f.status !== "negative");
+    const shown = flagged.length ? flagged : ex.findings;
+    const reasoning: Content = { stack: [
+      { text: ex.summary, bold: true, fontSize: 9.5, color: C.ink, lineHeight: 1.25 },
+      ...shown.map((f) => ({ stack: [
+        { text: f.title, bold: true, fontSize: 9.5, color: f.status === "positive" ? C.red : C.ink, margin: [0, 7, 0, 2] },
+        { ul: f.evidence.map((line) => ({ text: line, fontSize: 8.5, color: C.ink, lineHeight: 1.2 })) },
+      ] } as Content)),
+    ] };
+    if (ex.heatmap && /^data:image\/(jpeg|png)/.test(ex.heatmap)) {
+      content.push({ columns: [
+        { width: "*", ...reasoning } as Content,
+        { width: 150, stack: [{ image: ex.heatmap, fit: [150, 150], alignment: "center" }, { text: s.heatmap, fontSize: 7, color: C.muted, alignment: "center", margin: [0, 3, 0, 0] }] },
+      ], columnGap: 18 });
+    } else {
+      content.push(reasoning);
+    }
+  }
+
   // Recommendation
   content.push(label(s.recommendation));
-  content.push({ text: highRisk ? t("referDilated") : t("routine"), bold: true, fontSize: 10.5, color: C.ink });
-  content.push({ text: highRisk ? t("confirmFollowup") : t("routineDetail"), fontSize: 9, color: C.ink, margin: [0, 3, 0, 0], lineHeight: 1.25 });
+  const rec = scan.recommendations;
+  if (rec) {
+    const urgent = rec.urgency === "urgent" || rec.urgency === "emergency";
+    content.push({
+      table: { widths: ["*"], body: [[{
+        stack: [
+          { text: `${rec.urgency_label.toUpperCase()} · ${rec.timeframe}`, bold: true, fontSize: 10, color: urgent ? C.red : C.deep },
+          { text: rec.headline, bold: true, fontSize: 11, color: C.ink, margin: [0, 4, 0, 0] },
+        ],
+        fillColor: urgent ? C.redSoft : C.soft,
+        margin: [10, 7, 10, 8],
+      }]] },
+      layout: "noBorders",
+    });
+    for (const key of DISEASE_ORDER) {
+      const block = rec.by_disease[key];
+      if (!block) continue;
+      const name = analysis.metrics.find((m) => m.key === key)?.label ?? key;
+      content.push({ text: `${name} — ${s.when.toLowerCase()}: ${block.timeframe}`, bold: true, fontSize: 9.5, color: C.ink, margin: [0, 8, 0, 3] });
+      if (block.actions.length) content.push({ text: s.actions, fontSize: 8, color: C.muted, margin: [0, 2, 0, 2] }, { ul: block.actions.map((a) => ({ text: a, fontSize: 8.5 })) });
+      if (block.exams.length) content.push({ text: s.exams, fontSize: 8, color: C.muted, margin: [0, 4, 0, 2] }, { ul: block.exams.map((a) => ({ text: a, fontSize: 8.5 })) });
+    }
+    if (rec.general.length) content.push({ ul: rec.general.map((a) => ({ text: a, fontSize: 8.5 })), margin: [0, 8, 0, 0] });
+    content.push({
+      table: { widths: ["*"], body: [[{
+        stack: [
+          { text: rec.red_flags_title, bold: true, fontSize: 8.5, color: C.red },
+          { ul: rec.red_flags.map((a) => ({ text: a, fontSize: 8.5, color: C.ink })), margin: [0, 3, 0, 0] },
+        ],
+        fillColor: C.redSoft,
+        margin: [10, 6, 10, 7],
+      }]] },
+      layout: "noBorders",
+      margin: [0, 8, 0, 0],
+    });
+  } else {
+    content.push({ text: highRisk ? t("referDilated") : t("routine"), bold: true, fontSize: 10.5, color: C.ink });
+    content.push({ text: highRisk ? t("confirmFollowup") : t("routineDetail"), fontSize: 9, color: C.ink, margin: [0, 3, 0, 0], lineHeight: 1.25 });
+  }
 
   if (scan.notes?.trim()) {
     content.push(label(s.notes));

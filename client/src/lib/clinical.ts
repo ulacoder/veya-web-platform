@@ -7,7 +7,48 @@ export type InferenceResult = {
   cataract?: { probability: number; positive: boolean };
 };
 
-export type ModelResult = { result?: InferenceResult };
+// Explanation and recommendations returned by the VEYA API (texts are already in the requested language).
+export type DiseaseKey = "dr" | "glaucoma" | "cataract";
+export type RegionKey = "optic_disc" | "macula" | "vascular_arcades" | "periphery";
+
+export type Finding = {
+  disease: DiseaseKey;
+  name: string;
+  status: "positive" | "negative" | "uncertain";
+  title: string;
+  evidence: string[];
+  attention?: { region: RegionKey; share: number }[];
+};
+
+export type Explanation = {
+  method?: string;
+  summary: string;
+  findings: Finding[];
+  image_quality?: { issues?: string[]; issues_text?: string[] };
+  macula_involved?: boolean;
+  heatmap_disease?: DiseaseKey;
+  heatmap?: string;
+  heatmaps?: Partial<Record<DiseaseKey, string>>;
+};
+
+export type Urgency = "routine" | "planned" | "soon" | "urgent" | "emergency";
+
+export type RecommendationBlock = { urgency: Urgency; timeframe: string; headline: string; actions: string[]; exams: string[] };
+
+export type Recommendations = {
+  urgency: Urgency;
+  urgency_label: string;
+  timeframe: string;
+  headline: string;
+  by_disease: Partial<Record<DiseaseKey, RecommendationBlock>>;
+  general: string[];
+  red_flags_title: string;
+  red_flags: string[];
+};
+
+export type ModelResult = { result?: InferenceResult; explanation?: Explanation; recommendations?: Recommendations };
+
+export const DISEASE_ORDER: DiseaseKey[] = ["dr", "glaucoma", "cataract"];
 
 export type Metric = {
   key: "dr" | "glaucoma" | "cataract";
