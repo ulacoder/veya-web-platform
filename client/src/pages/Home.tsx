@@ -33,10 +33,11 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { interpret, isHighRisk, type InferenceResult, type ModelResult } from "@/lib/clinical";
+import { interpret, isHighRisk, type Explanation, type InferenceResult, type ModelResult, type Recommendations } from "@/lib/clinical";
 import { inspectImage, validateImageFile, type ImageCheck } from "@/lib/image";
 import { downloadReport } from "@/lib/report";
 import { FundusArt } from "@/components/FundusArt";
+import { ExplanationCard, RecommendationCard } from "@/components/Explanation";
 
 type TabKey = "dashboard" | "analysis" | "history" | "settings" | "profile";
 type RiskFilter = "All" | "High risk" | "Normal";
@@ -75,6 +76,16 @@ function saveInferenceEndpoint(value: string) {
   return url && isUsableEndpoint(url) ? url : DEFAULT_INFERENCE_ENDPOINT;
 }
 function profileHistoryKey() { return `${HISTORY_STORAGE_KEY_BASE}_${localStorage.getItem(ACTIVE_PROFILE_KEY) || "guest"}`; }
+// The API writes the explanation and recommendations in the language it is asked for.
+function withLanguage(endpoint: string, language: Language) {
+  try {
+    const url = new URL(endpoint);
+    if (!url.searchParams.has("lang")) url.searchParams.set("lang", language);
+    return url.toString();
+  } catch {
+    return endpoint;
+  }
+}
 const translations: Record<Language, Record<string, string>> = {
   en: { main: "Main", analysis: "Analysis", history: "History", settings: "Settings", archive: "PATIENT ARCHIVE", total: "Total screenings", normal: "Normal results", followups: "Follow-ups", allScans: "ALL SAVED SCANS", screening: "screening", screenings: "screenings", search: "Search by name or patient ID", export: "Export history", manage: "Manage history", selected: "selected", demoProtected: "demo items cannot be deleted", delete: "Delete selected", deleting: "Deleting...", noFound: "No screenings found", tryAgain: "Try a different name or filter.", language: "Language", live: "Live", demo: "Demo", ophthalmic: "Ophthalmic screening", morning: "Good morning", workspaceReady: "Your screening workspace is ready.", clinical: "CLINICAL INTELLIGENCE", start: "Start new screening", viewHistory: "View history", newWorkflow: "NEW WORKFLOW", newScreening: "New screening", patient: "Patient", continue: "Continue", capture: "Capture", review: "Review", settingsTitle: "Settings", connected: "Connected", save: "Save", back: "Back", upload: "Upload image", run: "Run AI screening", analyzing: "Analyzing signal...", languageSaved: "Language is saved on this device" },
   ru: { main: "Главная", analysis: "Анализ", history: "История", settings: "Настройки", archive: "АРХИВ ПАЦИЕНТОВ", total: "Всего скринингов", normal: "Нормальные результаты", followups: "На контроле", allScans: "ВСЕ СОХРАНЁННЫЕ СКАНЫ", screening: "сканирование", screenings: "сканирований", search: "Поиск по имени или ID пациента", export: "Экспорт истории", manage: "Управление историей", selected: "выбрано", demoProtected: "демо-записи нельзя удалить", delete: "Удалить выбранные", deleting: "Удаление...", noFound: "Сканы не найдены", tryAgain: "Измените имя или фильтр.", language: "Язык", live: "Реальный", demo: "Демо", ophthalmic: "Офтальмологический скрининг", morning: "Доброе утро", workspaceReady: "Рабочее пространство готово к скринингу.", clinical: "КЛИНИЧЕСКИЙ ИНТЕЛЛЕКТ", start: "Начать скрининг", viewHistory: "Открыть историю", newWorkflow: "НОВЫЙ ПРОЦЕСС", newScreening: "Новый скрининг", patient: "Пациент", continue: "Продолжить", capture: "Снимок", review: "Проверка", settingsTitle: "Настройки", connected: "Подключено", save: "Сохранить", back: "Назад", upload: "Загрузить изображение", run: "Запустить AI-скрининг", analyzing: "Анализируем...", languageSaved: "Язык сохранён на этом устройстве" },
@@ -105,6 +116,11 @@ const workflowTranslations: Record<Language, Record<string, string>> = {
   ru: { essentials: "Начнём с|основных данных.", context: "Эти данные помогут Veya учесть контекст скрининга. Клиническую заметку можно добавить позже.", captureFundus: "Сделайте|снимок глазного дна.", captureHelp: "Загрузите чёткий, хорошо сфокусированный снимок сетчатки.", age: "Возраст", reviewImage: "Проверить снимок" },
   kk: { essentials: "Негізгі|мәліметтерден бастайық.", context: "Бұл мәліметтер Veya-ға скрининг контекстін түсінуге көмектеседі. Клиникалық жазбаны кейін қосуға болады.", captureFundus: "Көз түбінің|суретін түсіріңіз.", captureHelp: "Торлы қабықтың анық, жақсы фокусталған суретін жүктеңіз.", age: "Жасы", reviewImage: "Суретті тексеру" },
 };
+const explainTranslations: Record<Language, Record<string, string>> = {
+  en: { explainTitle: "Why the AI answered so", explainOriginal: "Your image", explainHeatmap: "AI attention map", explainHeatmapHint: "Bright areas are where the image influenced the AI answer most (Grad-CAM).", explainAttention: "Share of AI attention by retinal area", explainClear: "No signs found", explainQuality: "Image quality", recActions: "What to do", recExams: "Examinations at the visit", region_optic_disc: "Optic disc", region_macula: "Macula", region_vascular_arcades: "Vascular arcades", region_periphery: "Periphery" },
+  ru: { explainTitle: "Обоснование ИИ", explainOriginal: "Ваш снимок", explainHeatmap: "Карта внимания ИИ", explainHeatmapHint: "Светлые зоны — участки снимка, которые сильнее всего повлияли на ответ ИИ (Grad-CAM).", explainAttention: "Доля внимания ИИ по зонам сетчатки", explainClear: "Признаков не найдено", explainQuality: "Качество снимка", recActions: "Что сделать", recExams: "Обследования на приёме", region_optic_disc: "Диск зрительного нерва", region_macula: "Макула", region_vascular_arcades: "Сосудистые аркады", region_periphery: "Периферия" },
+  kk: { explainTitle: "ЖИ негіздемесі", explainOriginal: "Сіздің суретіңіз", explainHeatmap: "ЖИ назар картасы", explainHeatmapHint: "Ашық аймақтар — ЖИ жауабына ең көп әсер еткен сурет бөліктері (Grad-CAM).", explainAttention: "Тор аймақтары бойынша ЖИ назарының үлесі", explainClear: "Белгілер табылмады", explainQuality: "Сурет сапасы", recActions: "Не істеу керек", recExams: "Қабылдаудағы тексерулер", region_optic_disc: "Көру нервінің дискі", region_macula: "Макула", region_vascular_arcades: "Тамыр аркалары", region_periphery: "Шеткі бөлік" },
+};
 function useI18n() { return useContext(LanguageContext) ?? { language: "en" as Language, setLanguage: () => undefined, t: (key: string) => key }; }
 const uiTranslations: Record<Language, Record<string, string>> = {
   en: { routineDetail: "No signs detected. Repeat screening in 12 months, or earlier if symptoms appear.", greetMorning: "Good morning", greetAfternoon: "Good afternoon", greetEvening: "Good evening", greetNight: "Good night", connectedShort: "Connected", vsYesterday: "{value} vs yesterday", noData: "No data yet", todayWord: "Today", yesterdayWord: "Yesterday", exporting: "Preparing PDF…", pdfReady: "Report saved: {name}", pdfFailed: "Could not create the PDF. Check the connection and try again.", fileTooLarge: "The file is larger than 10 MB. Choose a smaller image.", fileNotImage: "This file is not an image. Use JPG or PNG.", fileUnreadable: "The image could not be opened. Save it as JPG or PNG and try again.", qualityCheck: "Check image quality", issue_lowResolution: "Low resolution — the model works best from 512 px.", issue_tooDark: "The image is very dark — the retina may not be visible.", issue_tooBright: "The image is overexposed.", timeout: "The AI service did not respond within 2 minutes.", networkError: "Could not reach the AI service.", serverError: "The AI service returned an error", invalidResponse: "The AI service returned an unexpected response.", checkEndpoint: "Check the API endpoint in Settings and try again.", coldStart: "Waking up the AI server — the first analysis can take up to a minute.", cancel: "Cancel", storageFull: "Browser storage is full — the image was not saved with this scan.", savedToHistory: "Saved to history", openHistory: "Open history", analysisTimeLabel: "Analysis time {value} s", deleteConfirm: "Delete {count} selected scan(s)? This cannot be undone.", deleteOne: "Delete scan", deleteOneConfirm: "Delete this scan? This cannot be undone.", deleted: "Scan deleted", deleteFailed: "Could not delete the scan", testConnection: "Test connection", testing: "Checking…", reachable: "AI server is reachable", unreachable: "AI server is not reachable", connectionHelp: "Checks that the inference server answers. The first request after idle can take up to a minute.", statusUnknown: "NOT CHECKED", statusOnline: "ONLINE", statusOffline: "OFFLINE", autoUpload: "Auto-analyze after capture", autoUploadHelp: "Start AI screening as soon as a good-quality image is chosen", lastChecked: "Last checked {time}", notChecked: "Not checked yet", showDemo: "Show demo records", showDemoHelp: "Sample patients on the dashboard and in history", dataSection: "DATA", clearHistory: "Clear my scan history", clearHistoryHelp: "Removes scans saved in this browser for your profile", clearHistoryConfirm: "Delete all saved scans in this browser? This cannot be undone.", historyCleared: "History cleared", clearBtn: "Clear", logout: "Log out", help: "Help", helpTitle: "How to run a screening", helpStep1: "Enter the patient’s name, age and ID. Notes go into the PDF report.", helpStep2: "Choose the eye (OD — right, OS — left) and upload a centered fundus image with the optic disc visible.", helpStep3: "Run the AI screening. The model checks for diabetic retinopathy, glaucoma and cataract.", helpStep4: "Save the PDF report, attach it to the patient record and refer high-risk patients to an ophthalmologist.", helpSignalsTitle: "What the model checks", helpSignals: "Diabetic retinopathy grades 0–4, glaucoma and cataract probability. A result is flagged as high risk when any condition is positive.", helpDisclaimerTitle: "Important", helpDisclaimer: "VEYA is a screening support tool, not a diagnosis. Every result must be confirmed by an ophthalmologist.", close: "Close", demoAuthNote: "Demo sign-in: profiles are stored in this browser only.", noScansYet: "No screenings yet. Start your first one.", notesLabel: "Notes", csvExported: "History exported", noDetailStored: "Detailed AI output is not stored for this record.", ageYears: "{value} y.o." },
@@ -129,6 +145,8 @@ type Patient = {
   notes?: string;
   image?: string;
   result?: InferenceResult | null;
+  explanation?: Explanation;
+  recommendations?: Recommendations;
   latencyMs?: number;
 };
 
@@ -419,7 +437,7 @@ function Stepper({ step }: { step: number }) {
 }
 
 function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory: () => void }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [step, setStep] = useState(1);
   const [eye, setEye] = useState<"OS" | "OD">("OS");
   const [dragActive, setDragActive] = useState(false);
@@ -453,7 +471,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
     try {
       const payload = new FormData();
       payload.append("file", file);
-      const response = await fetch(readInferenceEndpoint(), { method: "POST", body: payload, signal: controller.signal });
+      const response = await fetch(withLanguage(readInferenceEndpoint(), language), { method: "POST", body: payload, signal: controller.signal });
       if (!response.ok) throw new Error(`${t("serverError")} (HTTP ${response.status}).`);
       const data = (await response.json()) as ModelResult & InferenceResult;
       const inference: InferenceResult | undefined = data?.result ?? (data?.dr_grade || data?.glaucoma || data?.cataract ? data : undefined);
@@ -481,6 +499,8 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
         notes: form.notes.trim(),
         image: check?.preview,
         result: inference,
+        explanation: data?.explanation,
+        recommendations: data?.recommendations,
         latencyMs,
       };
       if (!saveScan(scan)) toast.warning(t("storageFull"));
@@ -614,7 +634,7 @@ function Results({ scan, onRestart, onOpenHistory }: { scan: Patient; onRestart:
     <section className="results-section">
       <div className={`verdict verdict--${analysis.highRisk ? "risk" : "ok"}`} role="status">
         <span className="verdict__icon">{analysis.highRisk ? <TriangleAlert size={24} /> : <CircleCheck size={24} />}</span>
-        <div><p className="verdict__kicker">{t("resultFor")}, {scan.eye === "OS" ? t("leftEye").toLowerCase() : t("rightEye").toLowerCase()}</p><h2>{analysis.statusTitle}</h2><p>{analysis.statusDetail}</p></div>
+        <div><p className="verdict__kicker">{t("resultFor")}, {scan.eye === "OS" ? t("leftEye").toLowerCase() : t("rightEye").toLowerCase()}</p><h2>{analysis.statusTitle}</h2><p>{scan.recommendations ? `${scan.recommendations.headline} — ${scan.recommendations.timeframe}.` : analysis.statusDetail}</p></div>
       </div>
       <div className="results-grid">
         <div className="results-main">
@@ -623,9 +643,12 @@ function Results({ scan, onRestart, onOpenHistory }: { scan: Patient; onRestart:
             <div><strong>{scan.name}</strong><span className="patient-card__meta"><span>{scan.id}</span>{scan.age && <span>{t("ageYears").replace("{value}", scan.age)}</span>}<span>{scanWhen(scan, language, t)}</span>{scan.latencyMs && <span>{t("analysisTimeLabel").replace("{value}", (scan.latencyMs / 1000).toFixed(1))}</span>}</span></div>
           </div>
           <MetricsCard result={scan.result} live />
+          {scan.explanation && <ExplanationCard explanation={scan.explanation} image={scan.image} t={t} />}
         </div>
         <aside className="results-side">
-          <div className={`panel rec rec--${analysis.highRisk ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{analysis.recommendationTitle}</strong><p>{analysis.recommendationDetail}</p></div>
+          {scan.recommendations
+            ? <RecommendationCard rec={scan.recommendations} t={t} />
+            : <div className={`panel rec rec--${analysis.highRisk ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{analysis.recommendationTitle}</strong><p>{analysis.recommendationDetail}</p></div>}
           <div className="stack">
             <button className="btn btn--primary btn--block" onClick={() => void exportReport(scan)} disabled={exporting}>{exporting ? <Loader2 size={18} className="spin" /> : <Download size={18} />}{exporting ? t("exporting") : t("exportReport")}</button>
             <button className="btn btn--secondary btn--block" onClick={onOpenHistory}><History size={18} />{t("openHistory")}</button>
@@ -814,7 +837,7 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
       {patient.image && <img className="sheet-image" src={patient.image} alt={t("uploadedPreview")} />}
       <div className={`verdict verdict--compact verdict--${high ? "risk" : "ok"}`}>
         <span className="verdict__icon">{high ? <TriangleAlert size={20} /> : <CircleCheck size={20} />}</span>
-        <div><h3>{analysis.hasResult ? analysis.statusTitle : high ? t("highRiskFilter") : t("normalFilter")}</h3>{analysis.hasResult && <p>{analysis.statusDetail}</p>}</div>
+        <div><h3>{analysis.hasResult ? analysis.statusTitle : high ? t("highRiskFilter") : t("normalFilter")}</h3>{analysis.hasResult && <p>{patient.recommendations ? `${patient.recommendations.headline} — ${patient.recommendations.timeframe}.` : analysis.statusDetail}</p>}</div>
       </div>
       <dl className="facts">
         <div><dt>{t("eye")}</dt><dd>{patient.eye}, {patient.eye === "OS" ? t("left").toLowerCase() : t("right").toLowerCase()}</dd></div>
@@ -822,8 +845,11 @@ function PatientDrawer({ patient, onClose }: { patient: Patient; onClose: () => 
         <div><dt>{t("latency")}</dt><dd>{patient.latencyMs ? `${(patient.latencyMs / 1000).toFixed(1)} s` : "—"}</dd></div>
       </dl>
       {analysis.hasResult ? <MetricsCard result={patient.result} live={patient.source === "live"} /> : <p className="note">{t("noDetailStored")}</p>}
+      {patient.explanation && <ExplanationCard explanation={patient.explanation} image={patient.image} t={t} />}
       {patient.notes && <section className="sheet-section"><h3>{t("notesLabel")}</h3><p className="prose">{patient.notes}</p></section>}
-      <section className={`panel rec rec--${high ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{high ? t("followup") : t("routine")}</strong><p>{high ? t("reviewContext") : t("routineDetail")}</p></section>
+      {patient.recommendations
+        ? <RecommendationCard rec={patient.recommendations} t={t} />
+        : <section className={`panel rec rec--${high ? "risk" : "ok"}`}><h3>{t("recTitle")}</h3><strong>{high ? t("followup") : t("routine")}</strong><p>{high ? t("reviewContext") : t("routineDetail")}</p></section>}
       <div className="sheet-actions">
         <button className="btn btn--primary btn--block" onClick={() => void exportReport(patient)} disabled={exporting}>{exporting ? <Loader2 size={18} className="spin" /> : <Download size={18} />}{exporting ? t("exporting") : t("exportReport")}</button>
         {patient.source === "live" && <button className="btn btn--ghost-danger btn--block" onClick={() => void remove()} disabled={deleting}><Trash2 size={17} />{t("deleteOne")}</button>}
@@ -945,7 +971,7 @@ export default function Home() {
   const [savedScans, setSavedScans] = useState<Patient[]>(() => readSavedScans());
   const [, setProfileVersion] = useState(0);
   const [demo] = useState(demoPatients);
-  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : designTranslations[language][key] || uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || designTranslations.en[key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || key;
+  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : explainTranslations[language][key] || designTranslations[language][key] || uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || designTranslations.en[key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || explainTranslations.en[key] || key;
 
   useEffect(() => { const refresh = () => { setSavedScans(readSavedScans()); setProfileVersion((v) => v + 1); }; refresh(); window.addEventListener("veya-history-updated", refresh); window.addEventListener("storage", refresh); return () => { window.removeEventListener("veya-history-updated", refresh); window.removeEventListener("storage", refresh); }; }, [profile?.id]);
   useEffect(() => { document.documentElement.lang = language; }, [language]);
