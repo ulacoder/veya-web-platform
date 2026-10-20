@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { interpret, isHighRisk, type Explanation, type InferenceResult, type ModelResult, type Recommendations } from "@/lib/clinical";
 import { inspectImage, validateImageFile, type ImageCheck } from "@/lib/image";
+import { extractBestFrames, isVideoFile, MAX_VIDEO_BYTES, representativeFrame, type FrameAnswer, type VideoFrame } from "@/lib/video";
 import { downloadReport } from "@/lib/report";
 import { FundusArt } from "@/components/FundusArt";
 import { ExplanationCard, RecommendationCard } from "@/components/Explanation";
@@ -116,6 +117,11 @@ const workflowTranslations: Record<Language, Record<string, string>> = {
   ru: { essentials: "Начнём с|основных данных.", context: "Эти данные помогут Veya учесть контекст скрининга. Клиническую заметку можно добавить позже.", captureFundus: "Сделайте|снимок глазного дна.", captureHelp: "Загрузите чёткий, хорошо сфокусированный снимок сетчатки.", age: "Возраст", reviewImage: "Проверить снимок" },
   kk: { essentials: "Негізгі|мәліметтерден бастайық.", context: "Бұл мәліметтер Veya-ға скрининг контекстін түсінуге көмектеседі. Клиникалық жазбаны кейін қосуға болады.", captureFundus: "Көз түбінің|суретін түсіріңіз.", captureHelp: "Торлы қабықтың анық, жақсы фокусталған суретін жүктеңіз.", age: "Жасы", reviewImage: "Суретті тексеру" },
 };
+const videoTranslations: Record<Language, Record<string, string>> = {
+  en: { captureHelp: "Upload a sharp fundus photo or a short video (5–15 s) filmed through the adapter.", imageHint: "Photo JPG/PNG up to 10 MB, or video MP4/MOV up to 300 MB. From a video Veya picks the sharpest frames itself.", chooseFile: "Choose photo or video", videoExtracting: "Picking the sharpest frames from the video… {value}%", videoTooLarge: "The video is larger than 300 MB. Trim it to 5–15 seconds.", videoUnreadable: "This video cannot be opened in the browser. Save it as MP4 (H.264) and try again.", videoNoRetina: "No frame with a clearly visible retina was found. Film the fundus closer and steadier.", videoFramesNote: "From the {duration} s video Veya picked the {n} sharpest frames. The AI checks each one and combines the answers — one blurry frame no longer decides the result.", videoFrameProgress: "Analyzing frame {i} of {n}…", videoResultTitle: "Video analysis", videoResultNote: "{n} frames analyzed; the report shows the most typical one. Frames agreeing: retinopathy {dr}/{n}, glaucoma {gl}/{n}, cataract {cat}/{n}.", videoBadge: "Video · {n} frames" },
+  ru: { captureHelp: "Загрузите чёткий снимок глазного дна или короткое видео (5–15 с), снятое через насадку.", imageHint: "Фото JPG/PNG до 10 МБ или видео MP4/MOV до 300 МБ. Из видео Veya сама выберет самые чёткие кадры.", chooseFile: "Выбрать фото или видео", videoExtracting: "Выбираем самые чёткие кадры из видео… {value}%", videoTooLarge: "Видео больше 300 МБ. Обрежьте его до 5–15 секунд.", videoUnreadable: "Это видео не открывается в браузере. Сохраните его в MP4 (H.264) и повторите.", videoNoRetina: "Не найден кадр с хорошо видимой сетчаткой. Снимите глазное дно ближе и ровнее.", videoFramesNote: "Из видео длиной {duration} с Veya выбрала {n} самых чётких кадров. ИИ проверит каждый и объединит ответы — один смазанный кадр больше не решает результат.", videoFrameProgress: "Анализируем кадр {i} из {n}…", videoResultTitle: "Анализ видео", videoResultNote: "Проанализировано кадров: {n}, в отчёте — самый типичный. Совпадение кадров: ретинопатия {dr}/{n}, глаукома {gl}/{n}, катаракта {cat}/{n}.", videoBadge: "Видео · {n} кадров" },
+  kk: { captureHelp: "Көз түбінің анық суретін немесе қондырма арқылы түсірілген қысқа бейнені (5–15 с) жүктеңіз.", imageHint: "JPG/PNG сурет 10 МБ дейін немесе MP4/MOV бейне 300 МБ дейін. Бейнеден Veya ең анық кадрларды өзі таңдайды.", chooseFile: "Сурет не бейне таңдау", videoExtracting: "Бейнеден ең анық кадрлар таңдалуда… {value}%", videoTooLarge: "Бейне 300 МБ-тан үлкен. Оны 5–15 секундқа дейін қысқартыңыз.", videoUnreadable: "Бұл бейне браузерде ашылмайды. Оны MP4 (H.264) ретінде сақтап, қайталаңыз.", videoNoRetina: "Торлы қабық анық көрінетін кадр табылмады. Көз түбін жақынырақ әрі тұрақты түсіріңіз.", videoFramesNote: "{duration} с бейнеден Veya ең анық {n} кадрды таңдады. ИИ әрқайсысын тексеріп, жауаптарды біріктіреді.", videoFrameProgress: "{n} кадрдың {i}-і талдануда…", videoResultTitle: "Бейне талдауы", videoResultNote: "Талданған кадрлар: {n}, есепте ең типтік кадр. Кадрлардың сәйкестігі: ретинопатия {dr}/{n}, глаукома {gl}/{n}, катаракта {cat}/{n}.", videoBadge: "Бейне · {n} кадр" },
+};
 const explainTranslations: Record<Language, Record<string, string>> = {
   en: { explainTitle: "Why the AI answered so", explainOriginal: "Your image", explainHeatmap: "AI attention map", explainHeatmapHint: "Bright areas are where the image influenced the AI answer most (Grad-CAM).", explainAttention: "Share of AI attention by retinal area", explainClear: "No signs found", explainQuality: "Image quality", recActions: "What to do", recExams: "Examinations at the visit", region_optic_disc: "Optic disc", region_macula: "Macula", region_vascular_arcades: "Vascular arcades", region_periphery: "Periphery" },
   ru: { explainTitle: "Обоснование ИИ", explainOriginal: "Ваш снимок", explainHeatmap: "Карта внимания ИИ", explainHeatmapHint: "Светлые зоны — участки снимка, которые сильнее всего повлияли на ответ ИИ (Grad-CAM).", explainAttention: "Доля внимания ИИ по зонам сетчатки", explainClear: "Признаков не найдено", explainQuality: "Качество снимка", recActions: "Что сделать", recExams: "Обследования на приёме", region_optic_disc: "Диск зрительного нерва", region_macula: "Макула", region_vascular_arcades: "Сосудистые аркады", region_periphery: "Периферия" },
@@ -148,6 +154,7 @@ type Patient = {
   explanation?: Explanation;
   recommendations?: Recommendations;
   latencyMs?: number;
+  video?: { frames: number; agreement: Record<string, number> };
 };
 
 const HISTORY_STORAGE_KEY_BASE = "veya_scan_history";
@@ -445,6 +452,9 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
   const [fileUrl, setFileUrl] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [imageCheck, setImageCheck] = useState<ImageCheck | null>(null);
+  const [videoFrames, setVideoFrames] = useState<{ frames: VideoFrame[]; duration: number } | null>(null);
+  const [extracting, setExtracting] = useState<number | null>(null);
+  const [frameProgress, setFrameProgress] = useState<{ i: number; n: number } | null>(null);
   const [scanning, setScanning] = useState(false);
   const [slowHint, setSlowHint] = useState(false);
   const [scanError, setScanError] = useState("");
@@ -466,14 +476,46 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
     abortRef.current = controller;
     let timedOut = false;
     const slowTimer = window.setTimeout(() => setSlowHint(true), 8000);
-    const timeoutTimer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 120_000);
+    const frames = videoFrames?.frames ?? [];
+    const timeoutTimer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 120_000 + Math.max(0, frames.length - 1) * 45_000);
     const started = performance.now();
-    try {
+    const predict = async (upload: File) => {
       const payload = new FormData();
-      payload.append("file", file);
+      payload.append("file", upload);
       const response = await fetch(withLanguage(readInferenceEndpoint(), language), { method: "POST", body: payload, signal: controller.signal });
       if (!response.ok) throw new Error(`${t("serverError")} (HTTP ${response.status}).`);
-      const data = (await response.json()) as ModelResult & InferenceResult;
+      return (await response.json()) as ModelResult & InferenceResult;
+    };
+    try {
+      let data: ModelResult & InferenceResult;
+      let videoSummary: Patient["video"];
+      let shownPreview = check?.preview;
+      if (frames.length) {
+        // Video: every chosen frame goes to the AI (one at a time — the server is small), then the frame whose
+        // answer is closest to the median of all frames becomes the report, so one blurry frame cannot decide.
+        const results: Array<{ data: ModelResult & InferenceResult; frame: VideoFrame }> = [];
+        let lastError: unknown = null;
+        for (let i = 0; i < frames.length; i++) {
+          const frame = frames[i];
+          setFrameProgress({ i: i + 1, n: frames.length });
+          try { results.push({ data: await predict(frame.file), frame }); } catch (error) { if (controller.signal.aborted) throw error; lastError = error; }
+        }
+        const usable = results.filter((r) => (r.data as { screening?: InferenceResult["screening"] }).screening?.dr);
+        if (!usable.length) throw lastError ?? new Error(t("invalidResponse"));
+        const answers: FrameAnswer[] = usable.map(({ data: d }) => {
+          const sc = (d as { screening?: InferenceResult["screening"] }).screening!;
+          return {
+            probabilities: { dr: sc.dr?.probability ?? 0, glaucoma: sc.glaucoma?.probability ?? 0, cataract: sc.cataract?.probability ?? 0 },
+            statuses: { dr: sc.dr?.status ?? "", glaucoma: sc.glaucoma?.status ?? "", cataract: sc.cataract?.status ?? "" },
+          };
+        });
+        const pick = representativeFrame(answers);
+        data = usable[pick.index].data;
+        shownPreview = usable[pick.index].frame.preview;
+        videoSummary = { frames: usable.length, agreement: pick.agreement };
+      } else {
+        data = await predict(file);
+      }
       const base: InferenceResult | undefined = data?.result ?? (data?.dr_grade || data?.glaucoma || data?.cataract ? data : undefined);
       const screening = (data as { screening?: InferenceResult["screening"] })?.screening;
       const inference: InferenceResult | undefined = base && screening ? { ...base, screening: { dr: screening.dr, glaucoma: screening.glaucoma, cataract: screening.cataract } } : base;
@@ -499,11 +541,12 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
         source: "live",
         age: form.age.trim(),
         notes: form.notes.trim(),
-        image: check?.preview,
+        image: shownPreview,
         result: inference,
         explanation: data?.explanation,
         recommendations: data?.recommendations,
         latencyMs,
+        video: videoSummary,
       };
       if (!saveScan(scan)) toast.warning(t("storageFull"));
       setSavedScan(scan);
@@ -518,12 +561,35 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
       if (abortRef.current === controller) abortRef.current = null;
       setScanning(false);
       setSlowHint(false);
+      setFrameProgress(null);
     }
   };
 
   const handleFile = async (file?: File) => {
     if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
+    if (isVideoFile(file)) {
+      if (file.size > MAX_VIDEO_BYTES) { setScanError(t("videoTooLarge")); return; }
+      setScanError("");
+      setExtracting(0);
+      try {
+        const result = await extractBestFrames(file, { onProgress: (share) => setExtracting(Math.round(share * 100)) });
+        const best = result.frames[0];
+        const check = await inspectImage(best.file);
+        setFileName(file.name);
+        setFileUrl(URL.createObjectURL(best.file));
+        setUploadedFile(best.file);
+        setImageCheck(check);
+        setVideoFrames({ frames: result.frames, duration: result.duration });
+        setStep(3);
+      } catch (error) {
+        setScanError(t(error instanceof Error && error.message === "noRetina" ? "videoNoRetina" : "videoUnreadable"));
+      } finally {
+        setExtracting(null);
+      }
+      return;
+    }
+    setVideoFrames(null);
     const invalid = validateImageFile(file);
     if (invalid) { setScanError(t(invalid === "tooLarge" ? "fileTooLarge" : "fileNotImage")); return; }
     let check: ImageCheck;
@@ -538,7 +604,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
   const onDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragActive(false); void handleFile(event.dataTransfer.files?.[0]); };
   const onInput = (event: ChangeEvent<HTMLInputElement>) => void handleFile(event.target.files?.[0]);
   const cancelScan = () => abortRef.current?.abort();
-  const restart = () => { abortRef.current?.abort(); setStep(1); setFileName(""); setFileUrl(""); setUploadedFile(null); setImageCheck(null); setSavedScan(null); setScanError(""); setForm({ name: "", age: "", id: "", notes: "" }); };
+  const restart = () => { abortRef.current?.abort(); setStep(1); setFileName(""); setFileUrl(""); setUploadedFile(null); setImageCheck(null); setVideoFrames(null); setSavedScan(null); setScanError(""); setForm({ name: "", age: "", id: "", notes: "" }); };
   const qualityOk = !imageCheck?.issues.length;
   const openPicker = () => fileInput.current?.click();
 
@@ -549,7 +615,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
         <h1>{t("newScreening")}</h1>
       </header>
       <Stepper step={step} />
-      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/*" onChange={onInput} hidden />
+      <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/*,video/mp4,video/quicktime,video/webm,video/*" onChange={onInput} hidden />
 
       {step === 1 && <section className="flow-card">
         <h2>{t("essentialsTitle")}</h2>
@@ -576,7 +642,7 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
         </div>
         <div role="button" tabIndex={0} aria-label={t("uploadImage")} className={`dropzone${dragActive ? " is-dragging" : ""}`} onDragOver={(e) => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} onClick={openPicker} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } }}>
           <span className="dropzone__aperture"><ImageUp size={28} /></span>
-          <strong>{fileName || t("chooseFile")}</strong>
+          <strong>{extracting !== null ? <><Loader2 size={16} className="spin" /> {t("videoExtracting").replace("{value}", String(extracting))}</> : fileName || t("chooseFile")}</strong>
           <span>{fileName ? t("imageReady") : t("dropHere")}</span>
         </div>
         {scanError ? <p className="note note--error" role="alert"><AlertCircle size={18} />{scanError}</p> : <p className="note"><Info size={18} />{t("imageHint")}</p>}
@@ -593,9 +659,13 @@ function Analysis({ onBack, onOpenHistory }: { onBack: () => void; onOpenHistory
           {fileUrl ? <img src={fileUrl} alt={t("uploadedPreview")} /> : <FundusArt />}
           <figcaption><span className="chip chip--dark">{eye} · {eye === "OS" ? t("leftEye") : t("rightEye")}</span><span className={`chip ${qualityOk ? "chip--ok" : "chip--warn"}`}>{qualityOk ? <Check size={13} /> : <AlertCircle size={13} />}{qualityOk ? t("qualityGood") : t("qualityCheck")}</span></figcaption>
         </figure>
+        {videoFrames && <div className="frames-strip" aria-label={t("videoBadge").replace("{n}", String(videoFrames.frames.length))}>
+          {videoFrames.frames.map((frame) => <figure key={frame.time}><img src={frame.preview} alt="" /><figcaption>{frame.time.toFixed(1)} s</figcaption></figure>)}
+        </div>}
+        {videoFrames && <p className="note"><Info size={18} />{t("videoFramesNote").replace("{duration}", videoFrames.duration.toFixed(0)).replace("{n}", String(videoFrames.frames.length))}</p>}
         {!qualityOk && <p className="note note--warn"><AlertCircle size={18} />{imageCheck?.issues.map((issue) => t(`issue_${issue}`)).join(" ")}</p>}
         <div className="file-line"><FileText size={17} /><span className="file-line__name">{fileName}</span>{imageCheck && <span className="file-line__dim">{imageCheck.width}×{imageCheck.height}</span>}<button className="link-btn" onClick={() => { cancelScan(); openPicker(); }} disabled={scanning}><RotateCcw size={15} />{t("replace")}</button></div>
-        <p className={`note${slowHint ? " note--warn" : ""}`}>{scanning ? <Loader2 size={18} className="spin" /> : <ShieldCheck size={18} />}{slowHint ? t("coldStart") : t("modelInference")}</p>
+        <p className={`note${slowHint ? " note--warn" : ""}`}>{scanning ? <Loader2 size={18} className="spin" /> : <ShieldCheck size={18} />}{frameProgress ? t("videoFrameProgress").replace("{i}", String(frameProgress.i)).replace("{n}", String(frameProgress.n)) + (slowHint && frameProgress.i === 1 ? ` ${t("coldStart")}` : "") : slowHint ? t("coldStart") : t("modelInference")}</p>
         {scanError && <p className="note note--error" role="alert"><AlertCircle size={18} />{scanError}</p>}
         <div className="flow-actions">
           <button className="btn btn--primary btn--block" onClick={() => void beginScan()} disabled={scanning}>{scanning ? <Loader2 size={18} className="spin" /> : <ScanEye size={18} />}{scanning ? t("analyzing") : t("runScreening")}</button>
@@ -645,6 +715,7 @@ function Results({ scan, onRestart, onOpenHistory }: { scan: Patient; onRestart:
             <div><strong>{scan.name}</strong><span className="patient-card__meta"><span>{scan.id}</span>{scan.age && <span>{t("ageYears").replace("{value}", scan.age)}</span>}<span>{scanWhen(scan, language, t)}</span>{scan.latencyMs && <span>{t("analysisTimeLabel").replace("{value}", (scan.latencyMs / 1000).toFixed(1))}</span>}</span></div>
           </div>
           <MetricsCard result={scan.result} live />
+          {scan.video && <div className="panel video-note"><strong>{t("videoResultTitle")}</strong><p>{t("videoResultNote").replaceAll("{n}", String(scan.video.frames)).replace("{dr}", String(scan.video.agreement.dr ?? "—")).replace("{gl}", String(scan.video.agreement.glaucoma ?? "—")).replace("{cat}", String(scan.video.agreement.cataract ?? "—"))}</p></div>}
           {scan.explanation && <ExplanationCard explanation={scan.explanation} image={scan.image} t={t} />}
         </div>
         <aside className="results-side">
@@ -973,7 +1044,7 @@ export default function Home() {
   const [savedScans, setSavedScans] = useState<Patient[]>(() => readSavedScans());
   const [, setProfileVersion] = useState(0);
   const [demo] = useState(demoPatients);
-  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : explainTranslations[language][key] || designTranslations[language][key] || uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || designTranslations.en[key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || explainTranslations.en[key] || key;
+  const t = (key: string) => key === "profile" ? (language === "en" ? "Profile" : "Профиль") : videoTranslations[language][key] || explainTranslations[language][key] || designTranslations[language][key] || uiTranslations[language][key] || clinicalTranslations[language][key] || resultTranslations[language][key] || workflowTranslations[language][key] || dashboardTranslations[language][key] || extraTranslations[language][key] || translations[language][key] || designTranslations.en[key] || uiTranslations.en[key] || clinicalTranslations.en[key] || resultTranslations.en[key] || workflowTranslations.en[key] || dashboardTranslations.en[key] || extraTranslations.en[key] || translations.en[key] || explainTranslations.en[key] || videoTranslations.en[key] || key;
 
   useEffect(() => { const refresh = () => { setSavedScans(readSavedScans()); setProfileVersion((v) => v + 1); }; refresh(); window.addEventListener("veya-history-updated", refresh); window.addEventListener("storage", refresh); return () => { window.removeEventListener("veya-history-updated", refresh); window.removeEventListener("storage", refresh); }; }, [profile?.id]);
   useEffect(() => { document.documentElement.lang = language; }, [language]);
