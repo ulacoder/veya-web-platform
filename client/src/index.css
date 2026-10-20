@@ -357,6 +357,7 @@ img, svg { display: block; }
 .metrics__name { flex: 1; min-width: 0; font-size: 15.5px; font-weight: 600; }
 .metrics__flag { color: var(--ink-3); font-size: 13.5px; font-weight: 550; }
 .metrics__flag--pos { color: var(--risk); font-weight: 650; }
+.metrics__flag--unc { color: var(--warn); font-weight: 650; }
 .metrics__value { min-width: 52px; font-size: 22px; font-weight: 650; text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .meter { height: 10px; margin-top: 10px; border-radius: 99px; background: #edf2ef; overflow: hidden; }
 .grades { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }

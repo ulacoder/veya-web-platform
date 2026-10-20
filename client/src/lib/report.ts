@@ -32,8 +32,8 @@ const L: Record<ReportLanguage, Record<string, string>> = {
   en: {
     title: "AI retinal screening report", reportNo: "Report No.", generated: "Generated", clinic: "Clinic", clinician: "Clinician",
     patient: "PATIENT", name: "Name", pid: "Patient ID / IIN", age: "Age", eye: "Eye", od: "OD · right", os: "OS · left", scanDate: "Screening date",
-    image: "FUNDUS IMAGE", triage: "TRIAGE", high: "HIGH RISK — REFERRAL RECOMMENDED", normal: "NO SIGNS DETECTED",
-    findings: "AI FINDINGS", condition: "Condition", probability: "Probability", result: "Result", positive: "Positive", negative: "Negative",
+    image: "FUNDUS IMAGE", triage: "TRIAGE", high: "HIGH RISK — REFERRAL RECOMMENDED", check: "INCONCLUSIVE — OPHTHALMOLOGIST CHECK NEEDED", normal: "NO SIGNS DETECTED",
+    findings: "AI FINDINGS", condition: "Condition", probability: "Probability", result: "Result", positive: "Positive", negative: "Negative", uncertain: "Check needed",
     grades: "Diabetic retinopathy grade distribution", grade: "Grade", gradeNames: "No DR|Mild|Moderate|Severe|Proliferative",
     recommendation: "RECOMMENDATION", notes: "CLINICAL NOTES", none: "—", latency: "Analysis time", confidence: "AI confidence",
     noDetail: "Detailed model output is not available for this record. Summary values are shown.", demo: "Demo record",
@@ -44,8 +44,8 @@ const L: Record<ReportLanguage, Record<string, string>> = {
   ru: {
     title: "Отчёт AI-скрининга сетчатки", reportNo: "Отчёт №", generated: "Сформирован", clinic: "Клиника", clinician: "Врач",
     patient: "ПАЦИЕНТ", name: "ФИО", pid: "ID пациента / ИИН", age: "Возраст", eye: "Глаз", od: "OD · правый", os: "OS · левый", scanDate: "Дата скрининга",
-    image: "СНИМОК ГЛАЗНОГО ДНА", triage: "ТРИАЖ", high: "ВЫСОКИЙ РИСК — РЕКОМЕНДОВАНО НАПРАВЛЕНИЕ", normal: "ПРИЗНАКОВ НЕ ВЫЯВЛЕНО",
-    findings: "РЕЗУЛЬТАТЫ AI-АНАЛИЗА", condition: "Состояние", probability: "Вероятность", result: "Результат", positive: "Положительно", negative: "Отрицательно",
+    image: "СНИМОК ГЛАЗНОГО ДНА", triage: "ТРИАЖ", high: "ВЫСОКИЙ РИСК — РЕКОМЕНДОВАНО НАПРАВЛЕНИЕ", check: "СОМНИТЕЛЬНЫЙ РЕЗУЛЬТАТ — НУЖНА ПРОВЕРКА ОФТАЛЬМОЛОГА", normal: "ПРИЗНАКОВ НЕ ВЫЯВЛЕНО",
+    findings: "РЕЗУЛЬТАТЫ AI-АНАЛИЗА", condition: "Состояние", probability: "Вероятность", result: "Результат", uncertain: "Нужна проверка", positive: "Положительно", negative: "Отрицательно",
     grades: "Распределение по стадиям диабетической ретинопатии", grade: "Стадия", gradeNames: "Нет ДР|Лёгкая|Умеренная|Тяжёлая|Пролиферативная",
     recommendation: "РЕКОМЕНДАЦИЯ", notes: "КЛИНИЧЕСКИЕ ЗАМЕТКИ", none: "—", latency: "Время анализа", confidence: "Уверенность AI",
     noDetail: "Подробный ответ модели для этой записи недоступен. Показаны итоговые значения.", demo: "Демо-запись",
@@ -56,8 +56,8 @@ const L: Record<ReportLanguage, Record<string, string>> = {
   kk: {
     title: "Торлы қабықтың AI-скрининг есебі", reportNo: "Есеп №", generated: "Құрылды", clinic: "Клиника", clinician: "Дәрігер",
     patient: "ПАЦИЕНТ", name: "Аты-жөні", pid: "Пациент ID / ЖСН", age: "Жасы", eye: "Көз", od: "OD · оң", os: "OS · сол", scanDate: "Скрининг күні",
-    image: "КӨЗ ТҮБІНІҢ СУРЕТІ", triage: "ТРИАЖ", high: "ЖОҒАРЫ ҚАУІП — ЖОЛДАМА ҰСЫНЫЛАДЫ", normal: "БЕЛГІЛЕР АНЫҚТАЛМАДЫ",
-    findings: "AI ТАЛДАУ НӘТИЖЕЛЕРІ", condition: "Жағдай", probability: "Ықтималдық", result: "Нәтиже", positive: "Оң", negative: "Теріс",
+    image: "КӨЗ ТҮБІНІҢ СУРЕТІ", triage: "ТРИАЖ", high: "ЖОҒАРЫ ҚАУІП — ЖОЛДАМА ҰСЫНЫЛАДЫ", check: "КҮМӘНДІ НӘТИЖЕ — ОФТАЛЬМОЛОГ ТЕКСЕРУІ ҚАЖЕТ", normal: "БЕЛГІЛЕР АНЫҚТАЛМАДЫ",
+    findings: "AI ТАЛДАУ НӘТИЖЕЛЕРІ", condition: "Жағдай", probability: "Ықтималдық", result: "Нәтиже", uncertain: "Тексеру қажет", positive: "Оң", negative: "Теріс",
     grades: "Диабеттік ретинопатия дәрежелері бойынша бөлу", grade: "Дәреже", gradeNames: "ДР жоқ|Жеңіл|Орташа|Ауыр|Пролиферативті",
     recommendation: "ҰСЫНЫС", notes: "КЛИНИКАЛЫҚ ЖАЗБАЛАР", none: "—", latency: "Талдау уақыты", confidence: "AI сенімділігі",
     noDetail: "Бұл жазба үшін модельдің толық жауабы жоқ. Қорытынды мәндер көрсетілген.", demo: "Демо жазба",
@@ -67,7 +67,7 @@ const L: Record<ReportLanguage, Record<string, string>> = {
   },
 };
 
-const C = { deep: "#0b6b4f", green: "#26a96c", ink: "#12231d", muted: "#6f857c", line: "#dfe9e4", soft: "#f2f8f5", red: "#c2410c", redSoft: "#fff1ea" };
+const C = { deep: "#0b6b4f", green: "#26a96c", ink: "#12231d", muted: "#6f857c", line: "#dfe9e4", soft: "#f2f8f5", red: "#c2410c", redSoft: "#fff1ea", amber: "#b26b00" };
 
 function locale(language: ReportLanguage) {
   return language === "ru" ? "ru-RU" : language === "kk" ? "kk-KZ" : "en-GB";
@@ -168,7 +168,7 @@ export function buildReportDefinition(scan: ReportScan, language: ReportLanguage
   content.push({
     table: { widths: ["*"], body: [[{
       stack: [
-        { text: highRisk ? s.high : s.normal, bold: true, fontSize: 10, color: highRisk ? C.red : C.deep, characterSpacing: 0.4 },
+        { text: !highRisk ? s.normal : analysis.metrics.some((m) => m.status === "positive") || !hasDetail ? s.high : s.check, bold: true, fontSize: 10, color: highRisk ? C.red : C.deep, characterSpacing: 0.4 },
         ...(hasDetail ? [
           { text: analysis.statusTitle, bold: true, fontSize: 12, color: C.ink, margin: [0, 5, 0, 2] } as Content,
           { text: scan.recommendations ? `${scan.recommendations.headline} — ${scan.recommendations.timeframe}.` : analysis.statusDetail, fontSize: 9, color: C.ink, lineHeight: 1.25 } as Content,
@@ -192,7 +192,7 @@ export function buildReportDefinition(scan: ReportScan, language: ReportLanguage
           ...analysis.metrics.map((m) => [
             { text: m.label, fontSize: 10, color: C.ink, bold: true },
             { text: `${m.value}%`, fontSize: 10, color: C.ink },
-            { text: m.positive ? s.positive : s.negative, fontSize: 10, bold: m.positive, color: m.positive ? C.red : C.deep },
+            { text: m.status === "positive" ? s.positive : m.status === "uncertain" ? s.uncertain : s.negative, fontSize: 10, bold: m.status !== "negative", color: m.status === "positive" ? C.red : m.status === "uncertain" ? C.amber : C.deep },
           ]),
         ],
       },
