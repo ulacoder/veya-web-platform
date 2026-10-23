@@ -97,6 +97,10 @@ img, svg { display: block; }
 .brand strong { display: block; color: var(--pine); font-size: 19px; font-weight: 750; letter-spacing: .14em; line-height: 1; }
 .brand span { display: block; margin-top: 5px; color: var(--ink-3); font-size: 12.5px; line-height: 1.2; }
 .brand--compact strong { font-size: 18px; }
+.wordmark { display: block; width: auto; height: .82em; }
+.brand strong .wordmark { height: 16px; }
+.brand--compact strong .wordmark { height: 15px; }
+.auth__logo span .wordmark { height: 17px; }
 
 /* ---------- Buttons ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 20px; border-radius: 14px; font-size: 15.5px; font-weight: 600; line-height: 1.2; text-align: center; white-space: nowrap; transition: background-color .15s var(--ease), color .15s var(--ease), box-shadow .15s var(--ease), transform .1s var(--ease); }

@@ -298,7 +298,16 @@ const navItems: { key: TabKey; icon: typeof Menu; label: string }[] = [
 ];
 
 function LogoMark() {
-  return <img className="logo-mark" src="/brand/veya-logo-128.png" alt="" width={40} height={40} decoding="async" />;
+  return <img className="logo-mark" src="/brand/veya-icon.svg" alt="" width={40} height={40} decoding="async" />;
+}
+
+// VEYΛ wordmark: the A is drawn without a crossbar so it mirrors the V of the mark.
+function Wordmark() {
+  return (
+    <svg className="wordmark" viewBox="0 0 460 100" role="img" aria-label="VEYA" focusable="false">
+      <path fill="currentColor" d="M0 0L36 0L57 58L78 0L114 0L74 100L40 100ZM126 0L208 0L208 27L160 27L160 37L200 37L200 63L160 63L160 73L208 73L208 100L126 100ZM220 0L256 0L277 40L298 0L334 0L294 62L294 100L260 100L260 62ZM386 0L420 0L460 100L424 100L403 42L382 100L346 100Z" />
+    </svg>
+  );
 }
 
 function LanguageSwitcher() {
@@ -1009,12 +1018,12 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: Profile) =
   return (
     <div className="auth">
       <aside className="auth__brand" aria-hidden="true">
-        <div className="auth__logo"><LogoMark /><span>VEYA</span></div>
+        <div className="auth__logo"><LogoMark /><span><Wordmark /></span></div>
         <div className="auth__scope"><FundusArt className="auth__fundus" /><span className="hero__aperture" /></div>
         <p>{t("authLead")}</p>
       </aside>
       <main className="auth__main">
-        <div className="auth__top"><div className="auth__logo auth__logo--mobile"><LogoMark /><span>VEYA</span></div><LanguageSwitcher /></div>
+        <div className="auth__top"><div className="auth__logo auth__logo--mobile"><LogoMark /><span><Wordmark /></span></div><LanguageSwitcher /></div>
         <div className="auth__card">
           <FundusArt className="auth__mini" />
           <h1>{registerMode ? text.registerTitle : text.title}</h1>
@@ -1066,7 +1075,7 @@ export default function Home() {
       <div className="shell">
         <a className="skip" href="#main">{t("skip")}</a>
         <aside className="sidebar">
-          <div className="brand"><LogoMark /><div><strong>VEYA</strong><span>{t("ophthalmic")}</span></div></div>
+          <div className="brand"><LogoMark /><div><strong><Wordmark /></strong><span>{t("ophthalmic")}</span></div></div>
           <nav className="sidebar__nav" aria-label={t("mainNav")}>{navItems.filter((item) => item.key !== "profile").map(navButton)}</nav>
           <div className="sidebar__foot">
             <LanguageSwitcher />
@@ -1074,7 +1083,7 @@ export default function Home() {
           </div>
         </aside>
         <header className="appbar">
-          <div className="brand brand--compact"><LogoMark /><strong>VEYA</strong></div>
+          <div className="brand brand--compact"><LogoMark /><strong><Wordmark /></strong></div>
           <div className="appbar__end"><LanguageSwitcher /><button className="avatar" onClick={() => setActiveTab("profile")} aria-label={t("profile")}>{initials}</button></div>
         </header>
         <main className="main" id="main" tabIndex={-1}>
