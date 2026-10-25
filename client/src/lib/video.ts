@@ -34,7 +34,9 @@ async function seek(video: HTMLVideoElement, time: number) {
   await done;
 }
 
-/** Retina coverage, brightness and sharpness (variance of the Laplacian of the green channel inside the retina). */
+/** Retina coverage, brightness and sharpness (variance of the Laplacian of the green channel inside the retina).
+ *  "Retina" = red-orange fundus pixels only. The dark-blue pupil with the lens glare, the grey adapter around the lens
+ *  and dust or scratches on the lens are NOT retina: counting every non-black pixel let those frames win on "sharpness". */
 function frameScore(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const { data } = ctx.getImageData(0, 0, w, h);
   const g = new Float32Array(w * h);
@@ -42,9 +44,11 @@ function frameScore(ctx: CanvasRenderingContext2D, w: number, h: number) {
   let inside = 0;
   let lum = 0;
   for (let i = 0, p = 0; p < w * h; i += 4, p++) {
-    const l = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    g[p] = data[i + 1];
-    if (l > 25) { mask[p] = 1; inside++; lum += l; }
+    const r = data[i], gr = data[i + 1], bl = data[i + 2];
+    const l = 0.299 * r + 0.587 * gr + 0.114 * bl;
+    g[p] = gr;
+    // fundus: red clearly dominates blue and a little over green; very bright pixels are glare, not retina
+    if (r > 70 && r > 1.3 * bl && r > 1.05 * gr && l < 240) { mask[p] = 1; inside++; lum += l; }
   }
   const coverage = inside / (w * h);
   const brightness = inside ? lum / inside : 0;
@@ -59,8 +63,9 @@ function frameScore(ctx: CanvasRenderingContext2D, w: number, h: number) {
     }
   }
   const sharpness = n ? sum2 / n - (sum / n) ** 2 : 0;
-  const usable = coverage > 0.12 && brightness > 35 && brightness < 235;
-  return { score: usable ? sharpness * Math.min(1, coverage / 0.45) : 0, coverage, brightness, sharpness };
+  // through the phone adapter the fundus is a circle in the middle of the frame, ~10–30% of it
+  const usable = coverage > 0.06 && brightness > 35 && brightness < 235;
+  return { score: usable ? sharpness * Math.min(1, coverage / 0.2) : 0, coverage, brightness, sharpness };
 }
 
 function toBlob(canvas: HTMLCanvasElement, quality: number) {
@@ -69,7 +74,7 @@ function toBlob(canvas: HTMLCanvasElement, quality: number) {
 
 export async function extractBestFrames(
   file: File,
-  { samples = 30, keep = 5, maxSide = 1280, onProgress }: { samples?: number; keep?: number; maxSide?: number; onProgress?: (share: number) => void } = {},
+  { samples = 150, keep = 5, maxSide = 1280, onProgress }: { samples?: number; keep?: number; maxSide?: number; onProgress?: (share: number) => void } = {},
 ): Promise<VideoExtraction> {
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
@@ -92,7 +97,7 @@ export async function extractBestFrames(
     small.height = Math.max(1, Math.round(height * s));
     const sctx = small.getContext("2d", { willReadFrequently: true });
     if (!sctx) throw new Error("canvas");
-    const count = Math.max(keep, Math.min(samples, Math.ceil(duration * 6)));
+    const count = Math.max(keep, Math.min(samples, Math.ceil(duration * 8)));
     const scored: Array<{ time: number; score: number }> = [];
     for (let i = 0; i < count; i++) {
       const time = duration * (0.03 + 0.94 * (count === 1 ? 0.5 : i / (count - 1)));
@@ -102,12 +107,13 @@ export async function extractBestFrames(
       onProgress?.((i + 1) / (count + keep));
     }
 
-    // 2) the best frames: only clearly sharp ones (≥ 50% of the sharpest), spread out in time so they are not
-    //    near-duplicates of one moment; if too few, allow them closer together rather than take blurry frames
+    // 2) the best frames: only clearly sharp ones (≥ 50% of the sharpest), a little apart in time so they are not
+    //    near-duplicates of one moment. The retina is often in view for only 2–3 s of a video, so the gap is small
+    //    (0.6 s, then 0.3 s, then none) rather than spreading the picks over the whole clip.
     const top = Math.max(0, ...scored.map((c) => c.score));
     const candidates = scored.filter((c) => c.score > 0 && c.score >= 0.5 * top).sort((a, b) => b.score - a.score);
     const chosen: Array<{ time: number; score: number }> = [];
-    for (const gap of [duration / (keep * 2.5), duration / (keep * 6), 0]) {
+    for (const gap of [0.6, 0.3, 0]) {
       for (const c of candidates) {
         if (chosen.length === keep) break;
         if (!chosen.includes(c) && chosen.every((x) => Math.abs(x.time - c.time) >= gap - 1e-6)) chosen.push(c);
